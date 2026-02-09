@@ -7,6 +7,10 @@ as $$
 declare
   new_org_id uuid;
 begin
+  if auth.uid() is null then
+    raise exception 'Not authenticated';
+  end if;
+
   insert into orgs (name)
   values (org_name)
   returning id into new_org_id;
@@ -17,6 +21,8 @@ begin
   return new_org_id;
 end;
 $$;
+
+grant execute on function create_org(text) to authenticated;
 
 create or replace function is_member_of_org(org_id uuid)
 returns boolean

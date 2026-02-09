@@ -14,9 +14,14 @@ create policy "orgs_select" on orgs
   for select
   using (is_member_of_org(id));
 
+create policy "orgs_insert" on orgs
+  for insert
+  with check (auth.uid() is not null);
+
 create policy "orgs_update" on orgs
   for update
-  using (is_org_admin(id));
+  using (is_org_admin(id))
+  with check (is_org_admin(id));
 
 create policy "orgs_delete" on orgs
   for delete
@@ -41,7 +46,7 @@ create policy "profiles_delete" on profiles
 
 create policy "org_members_select" on org_members
   for select
-  using (is_member_of_org(org_id));
+  using (user_id = auth.uid());
 
 create policy "org_members_insert" on org_members
   for insert
@@ -115,6 +120,15 @@ create policy "order_status_history_insert" on order_status_history
   for insert
   with check (is_member_of_org(org_id));
 
+create policy "order_status_history_update" on order_status_history
+  for update
+  using (is_member_of_org(org_id))
+  with check (is_member_of_org(org_id));
+
+create policy "order_status_history_delete" on order_status_history
+  for delete
+  using (is_member_of_org(org_id));
+
 create policy "measurements_select" on measurements
   for select
   using (is_member_of_org(org_id));
@@ -122,6 +136,15 @@ create policy "measurements_select" on measurements
 create policy "measurements_insert" on measurements
   for insert
   with check (is_member_of_org(org_id));
+
+create policy "measurements_update" on measurements
+  for update
+  using (is_member_of_org(org_id))
+  with check (is_member_of_org(org_id));
+
+create policy "measurements_delete" on measurements
+  for delete
+  using (is_member_of_org(org_id));
 
 create policy "measurement_items_select" on measurement_items
   for select
@@ -131,6 +154,15 @@ create policy "measurement_items_insert" on measurement_items
   for insert
   with check (is_member_of_org(org_id));
 
+create policy "measurement_items_update" on measurement_items
+  for update
+  using (is_member_of_org(org_id))
+  with check (is_member_of_org(org_id));
+
+create policy "measurement_items_delete" on measurement_items
+  for delete
+  using (is_member_of_org(org_id));
+
 create policy "attachments_select" on attachments
   for select
   using (is_member_of_org(org_id));
@@ -139,6 +171,15 @@ create policy "attachments_insert" on attachments
   for insert
   with check (is_member_of_org(org_id));
 
+create policy "attachments_update" on attachments
+  for update
+  using (is_member_of_org(org_id))
+  with check (is_member_of_org(org_id));
+
+create policy "attachments_delete" on attachments
+  for delete
+  using (is_member_of_org(org_id));
+
 create policy "measurement_item_attachments_select" on measurement_item_attachments
   for select
   using (is_member_of_org(org_id));
@@ -146,3 +187,12 @@ create policy "measurement_item_attachments_select" on measurement_item_attachme
 create policy "measurement_item_attachments_insert" on measurement_item_attachments
   for insert
   with check (is_member_of_org(org_id));
+
+create policy "measurement_item_attachments_update" on measurement_item_attachments
+  for update
+  using (is_member_of_org(org_id))
+  with check (is_member_of_org(org_id));
+
+create policy "measurement_item_attachments_delete" on measurement_item_attachments
+  for delete
+  using (is_member_of_org(org_id));

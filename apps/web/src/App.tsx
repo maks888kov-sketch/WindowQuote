@@ -8,6 +8,7 @@ import OrdersPage from "./pages/OrdersPage";
 import OrderDetailPage from "./pages/OrderDetailPage";
 import NewMeasurementPage from "./pages/NewMeasurementPage";
 import MeasurementHistoryPage from "./pages/MeasurementHistoryPage";
+import OrgSelectPage from "./pages/OrgSelectPage";
 
 const App = () => {
   return (
@@ -16,6 +17,7 @@ const App = () => {
         <Route index element={<Navigate to="/orders" replace />} />
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/onboarding" element={<OnboardingPage />} />
+        <Route path="/orgs/select" element={<OrgSelectPage />} />
         <Route path="/customers" element={<CustomersPage />} />
         <Route path="/sites" element={<SitesPage />} />
         <Route path="/orders" element={<OrdersPage />} />
