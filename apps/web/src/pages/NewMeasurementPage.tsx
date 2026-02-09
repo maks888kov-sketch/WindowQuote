@@ -3,6 +3,13 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useOrgContext } from "../context/OrgContext";
 import { supabase } from "../lib/supabaseClient";
 
+type MeasurementMeta = {
+  id: string;
+  version: number;
+  created_at: string;
+  notes: string | null;
+};
+
 type MeasurementItem = {
   id: string;
   item_type: string;
@@ -29,6 +36,8 @@ const NewMeasurementPage = () => {
   const { activeOrgId } = useOrgContext();
   const [searchParams] = useSearchParams();
   const [measurementId, setMeasurementId] = useState<string | null>(searchParams.get("measurementId"));
+  const [measurementMeta, setMeasurementMeta] = useState<MeasurementMeta | null>(null);
+  const [latestVersion, setLatestVersion] = useState<number | null>(null);
   const [items, setItems] = useState<MeasurementItem[]>([]);
   const [attachments, setAttachments] = useState<Record<string, ItemAttachment[]>>({});
   const [error, setError] = useState<string | null>(null);
@@ -41,6 +50,11 @@ const NewMeasurementPage = () => {
   const [paramsJson, setParamsJson] = useState("{}" as const);
 
   const canAddItem = useMemo(() => Boolean(activeOrgId && measurementId), [activeOrgId, measurementId]);
+  const isReadOnly = useMemo(() => {
+    if (!measurementMeta || latestVersion === null) return false;
+    return measurementMeta.version < latestVersion;
+  }, [measurementMeta, latestVersion]);
+  const canEdit = useMemo(() => Boolean(canAddItem && !isReadOnly), [canAddItem, isReadOnly]);
 
   const loadItems = async (activeMeasurementId: string) => {
     const { data, error: fetchError } = await supabase
@@ -82,6 +96,40 @@ const NewMeasurementPage = () => {
     setAttachments(grouped);
   };
 
+  const loadMeasurementMeta = async (activeMeasurementId: string) => {
+    if (!id) return;
+
+    const { data, error: fetchError } = await supabase
+      .from("measurements")
+      .select("id, version, created_at, notes")
+      .eq("id", activeMeasurementId)
+      .single();
+
+    if (fetchError) {
+      setError(fetchError.message);
+      setMeasurementMeta(null);
+      return;
+    }
+
+    setMeasurementMeta(data as MeasurementMeta);
+
+    const { data: latestData, error: latestError } = await supabase
+      .from("measurements")
+      .select("version")
+      .eq("order_id", id)
+      .order("version", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (latestError) {
+      setError(latestError.message);
+      setLatestVersion(null);
+      return;
+    }
+
+    setLatestVersion(latestData?.version ?? null);
+  };
+
   const handleCreateMeasurement = async () => {
     if (!id) return;
 
@@ -104,7 +152,7 @@ const NewMeasurementPage = () => {
   };
 
   const handleAddItem = async () => {
-    if (!measurementId || !activeOrgId) return;
+    if (!measurementId || !activeOrgId || isReadOnly) return;
 
     let parsedParams: Record<string, unknown> = {};
     try {
@@ -144,10 +192,14 @@ const NewMeasurementPage = () => {
   };
 
   const handleUpload = async (itemId: string, file: File) => {
-    if (!activeOrgId || !measurementId) return;
+    if (!activeOrgId || !measurementId || !id || isReadOnly) return;
 
     setLoading(true);
-    const path = `${activeOrgId}/${measurementId}/${itemId}/${Date.now()}-${file.name}`;
+    const extension = file.name.includes(".") ? file.name.split(".").pop() : "";
+    const fileUuid = crypto.randomUUID();
+    const filename = extension ? `${fileUuid}.${extension}` : fileUuid;
+    const path = `orgs/${activeOrgId}/orders/${id}/measurements/${measurementId}/items/${itemId}/${filename}`;
+
     const { error: uploadError } = await supabase.storage
       .from("photos")
       .upload(path, file, { contentType: file.type });
@@ -189,16 +241,23 @@ const NewMeasurementPage = () => {
   };
 
   useEffect(() => {
-    if (!measurementId) return;
+    if (!measurementId) {
+      setItems([]);
+      setAttachments({});
+      setMeasurementMeta(null);
+      setLatestVersion(null);
+      return;
+    }
 
     void loadItems(measurementId);
-  }, [measurementId]);
+    void loadMeasurementMeta(measurementId);
+  }, [measurementId, id]);
 
   return (
     <section className="stack">
       <div className="page-header">
         <div>
-          <h1>New Measurement</h1>
+          <h1>{measurementMeta ? `Measurement v${measurementMeta.version}` : "New Measurement"}</h1>
           <p>Create a new measurement version for order {id}.</p>
         </div>
         {!measurementId ? (
@@ -214,6 +273,19 @@ const NewMeasurementPage = () => {
 
       {error && <p className="error">{error}</p>}
 
+      {measurementMeta && (
+        <div className="card stack">
+          <div className="row">
+            <h2>Version details</h2>
+            <span className="pill">{isReadOnly ? "Read-only" : "Editable"}</span>
+          </div>
+          <p>
+            Created {new Date(measurementMeta.created_at).toLocaleString()} · Notes: {measurementMeta.notes ?? "None"}
+          </p>
+          {isReadOnly && <p>This measurement is locked because a newer version exists.</p>}
+        </div>
+      )}
+
       <div className="card stack">
         <h2>Measurement items</h2>
         {!measurementId ? (
@@ -225,26 +297,54 @@ const NewMeasurementPage = () => {
             <div className="grid">
               <label className="field">
                 Width (mm)
-                <input type="number" placeholder="0" value={width} onChange={(event) => setWidth(event.target.value)} />
+                <input
+                  type="number"
+                  placeholder="0"
+                  value={width}
+                  onChange={(event) => setWidth(event.target.value)}
+                  disabled={isReadOnly}
+                />
               </label>
               <label className="field">
                 Height (mm)
-                <input type="number" placeholder="0" value={height} onChange={(event) => setHeight(event.target.value)} />
+                <input
+                  type="number"
+                  placeholder="0"
+                  value={height}
+                  onChange={(event) => setHeight(event.target.value)}
+                  disabled={isReadOnly}
+                />
               </label>
               <label className="field">
                 Quantity
-                <input type="number" placeholder="1" value={qty} onChange={(event) => setQty(event.target.value)} />
+                <input
+                  type="number"
+                  placeholder="1"
+                  value={qty}
+                  onChange={(event) => setQty(event.target.value)}
+                  disabled={isReadOnly}
+                />
               </label>
             </div>
             <label className="field">
               Notes
-              <input value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Living room" />
+              <input
+                value={notes}
+                onChange={(event) => setNotes(event.target.value)}
+                placeholder="Living room"
+                disabled={isReadOnly}
+              />
             </label>
             <label className="field">
               Params (JSON)
-              <textarea rows={4} value={paramsJson} onChange={(event) => setParamsJson(event.target.value)} />
+              <textarea
+                rows={4}
+                value={paramsJson}
+                onChange={(event) => setParamsJson(event.target.value)}
+                disabled={isReadOnly}
+              />
             </label>
-            <button className="btn secondary" onClick={handleAddItem} disabled={!canAddItem}>
+            <button className="btn secondary" onClick={handleAddItem} disabled={!canEdit}>
               Add item
             </button>
             {items.length === 0 ? (
@@ -274,7 +374,7 @@ const NewMeasurementPage = () => {
                               void handleUpload(item.id, file);
                             }
                           }}
-                          disabled={loading}
+                          disabled={loading || isReadOnly}
                         />
                       </label>
                       {(attachments[item.id] ?? []).length > 0 && (
