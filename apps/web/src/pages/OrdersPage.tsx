@@ -8,8 +8,8 @@ type OrderRecord = {
   title: string;
   status: string;
   created_at: string;
-  customers?: { name: string } | null;
-  sites?: { name: string } | null;
+  customers?: { name: string }[] | null;
+  sites?: { name: string }[] | null;
 };
 
 type CustomerOption = {
@@ -235,7 +235,7 @@ const OrdersPage = () => {
                 <div>
                   <strong>{order.title}</strong>
                   <p>
-                    {order.status} · {order.sites?.name ?? "No site"}
+                    {order.status} · {order.sites?.[0]?.name ?? "No site"}
                   </p>
                   <small>{new Date(order.created_at).toLocaleString()}</small>
                 </div>

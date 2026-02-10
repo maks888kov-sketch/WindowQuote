@@ -8,8 +8,8 @@ type OrderRecord = {
   title: string;
   status: string;
   created_at: string;
-  customers?: { name: string } | null;
-  sites?: { name: string } | null;
+  customers?: { name: string }[] | null;
+  sites?: { name: string }[] | null;
 };
 
 type StatusHistory = {
@@ -166,8 +166,8 @@ const OrderDetailPage = () => {
           <div className="card stack">
             <h2>Order details</h2>
             <p>Status: {order?.status ?? "Unknown"}</p>
-            <p>Customer: {order?.customers?.name ?? "Unknown"}</p>
-            <p>Site: {order?.sites?.name ?? "No site"}</p>
+            <p>Customer: {order?.customers?.[0]?.name ?? "Unknown"}</p>
+            <p>Site: {order?.sites?.[0]?.name ?? "No site"}</p>
           </div>
           <div className="card">
             <h2>Status history</h2>

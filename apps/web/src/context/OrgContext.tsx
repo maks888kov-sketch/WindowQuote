@@ -5,7 +5,7 @@ import { supabase } from "../lib/supabaseClient";
 type OrgMembership = {
   org_id: string;
   role: string;
-  orgs?: { name: string } | null;
+  orgs?: { name: string }[] | null;
 };
 
 type OrgContextValue = {
@@ -52,7 +52,7 @@ export const OrgProvider = ({ children }: { children: React.ReactNode }) => {
       .eq("user_id", session.user.id);
 
     if (error) {
-      if (error.status === 401 || error.status === 403) {
+      if ((error as any)?.code === "PGRST301") {
         setAuthError("Недостаточно прав для доступа к организации. Перезайдите.");
       } else {
         setAuthError(error.message);

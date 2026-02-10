@@ -27,7 +27,7 @@ type ItemAttachment = {
     path: string;
     mime: string | null;
     size: number | null;
-  } | null;
+  }[];
 };
 
 const NewMeasurementPage = () => {
@@ -47,7 +47,7 @@ const NewMeasurementPage = () => {
   const [height, setHeight] = useState("");
   const [qty, setQty] = useState("1");
   const [notes, setNotes] = useState("");
-  const [paramsJson, setParamsJson] = useState("{}" as const);
+  const [paramsJson, setParamsJson] = useState<string>("{}");
 
   const canAddItem = useMemo(() => Boolean(activeOrgId && measurementId), [activeOrgId, measurementId]);
   const isReadOnly = useMemo(() => {
@@ -90,7 +90,7 @@ const NewMeasurementPage = () => {
     const grouped: Record<string, ItemAttachment[]> = {};
     (attachmentData ?? []).forEach((attachment) => {
       const list = grouped[attachment.measurement_item_id] ?? [];
-      list.push(attachment as ItemAttachment);
+      list.push(attachment as unknown as ItemAttachment);
       grouped[attachment.measurement_item_id] = list;
     });
     setAttachments(grouped);
@@ -380,8 +380,8 @@ const NewMeasurementPage = () => {
                       {(attachments[item.id] ?? []).length > 0 && (
                         <ul>
                           {(attachments[item.id] ?? []).map((attachment) => (
-                            <li key={attachment.attachments?.id ?? attachment.measurement_item_id}>
-                              {attachment.attachments?.path.split("/").pop()} ({attachment.attachments?.size ?? 0} bytes)
+                            <li key={attachment.attachments?.[0]?.id ?? attachment.measurement_item_id}>
+                              {attachment.attachments?.[0]?.path.split("/").pop()} ({attachment.attachments?.[0]?.size ?? 0} bytes)
                             </li>
                           ))}
                         </ul>
