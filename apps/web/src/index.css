@@ -104,6 +104,12 @@ a {
   justify-content: space-between;
 }
 
+.form-wrap {
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: flex-start;
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -125,6 +131,10 @@ a {
   color: #0f172a;
 }
 
+.btn.danger {
+  color: #b91c1c;
+}
+
 .field {
   display: grid;
   gap: 0.4rem;
@@ -134,7 +144,8 @@ a {
 
 .field input,
 .field select,
-.field textarea {
+.field textarea,
+.table select {
   padding: 0.6rem 0.8rem;
   border-radius: 0.6rem;
   border: 1px solid #cbd5f5;
@@ -176,6 +187,36 @@ a {
   padding: 0;
   display: grid;
   gap: 0.5rem;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 0.75rem 0.4rem;
+  vertical-align: middle;
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 5.25rem;
+  transform: translateX(-50%);
+  background: #0f172a;
+  color: #fff;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.3);
+  z-index: 30;
 }
 
 @media (max-width: 720px) {

@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 
+const ACTIVE_ORG_STORAGE_KEY = "activeOrgId";
+const LOGIN_TOAST_FLAG_KEY = "windowquote-login-toast";
+
 const AuthPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -8,13 +11,37 @@ const AuthPage = () => {
 
   const handleAuth = async (mode: "sign-in" | "sign-up") => {
     setMessage(null);
-  
-    const { error } =
+
+    const response =
       mode === "sign-in"
         ? await supabase.auth.signInWithPassword({ email, password })
         : await supabase.auth.signUp({ email, password });
-  
-    if (error) return setMessage(error.message);
+
+    const { data, error } = response;
+
+    if (error) {
+      return setMessage(error.message);
+    }
+
+    if (mode === "sign-in") {
+      const rememberedOrgId = localStorage.getItem(ACTIVE_ORG_STORAGE_KEY);
+      const { data: memberships } = await supabase
+        .from("org_members")
+        .select("org_id")
+        .eq("user_id", data.user?.id ?? "");
+
+      const availableOrgIds = (memberships ?? []).map((membership) => membership.org_id);
+      const orgIdForLog = rememberedOrgId && availableOrgIds.includes(rememberedOrgId)
+        ? rememberedOrgId
+        : availableOrgIds[0];
+
+      if (orgIdForLog) {
+        await supabase.rpc("log_auth_event", { p_org_id: orgIdForLog, p_event: "login" });
+      }
+
+      sessionStorage.setItem(LOGIN_TOAST_FLAG_KEY, "1");
+    }
+
     setMessage(mode === "sign-in" ? "Signed in." : "Check your email to confirm sign up.");
   };
 

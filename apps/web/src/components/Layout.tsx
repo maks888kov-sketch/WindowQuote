@@ -1,10 +1,13 @@
+import { useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useOrgContext } from "../context/OrgContext";
 import AuthPage from "../pages/AuthPage";
 import OnboardingPage from "../pages/OnboardingPage";
 import OrgSelectPage from "../pages/OrgSelectPage";
 
-const navItems = [
+const LOGIN_TOAST_FLAG_KEY = "windowquote-login-toast";
+
+const baseNavItems = [
   { label: "Orders", to: "/orders" },
   { label: "Customers", to: "/customers" },
   { label: "Sites", to: "/sites" },
@@ -15,8 +18,43 @@ const Layout = () => {
   const location = useLocation();
   const hideNav = location.pathname.startsWith("/orders/");
   const { session, orgs, activeOrgId, loading, authError } = useOrgContext();
+  const [showLoginToast, setShowLoginToast] = useState(false);
 
-  const activeOrgName = orgs.find((org) => org.org_id === activeOrgId)?.orgs?.[0]?.name;
+  const activeMembership = useMemo(
+    () => orgs.find((org) => org.org_id === activeOrgId),
+    [orgs, activeOrgId]
+  );
+
+  const navItems = useMemo(() => {
+    if (activeMembership?.role === "admin") {
+      return [...baseNavItems, { label: "Admin", to: "/admin/users" }];
+    }
+    return baseNavItems;
+  }, [activeMembership?.role]);
+
+  const activeOrgName = activeMembership?.orgs?.[0]?.name;
+
+  useEffect(() => {
+    if (!session) {
+      setShowLoginToast(false);
+      return;
+    }
+
+    if (sessionStorage.getItem(LOGIN_TOAST_FLAG_KEY) !== "1") {
+      return;
+    }
+
+    setShowLoginToast(true);
+    sessionStorage.removeItem(LOGIN_TOAST_FLAG_KEY);
+
+    const timeout = window.setTimeout(() => {
+      setShowLoginToast(false);
+    }, 3500);
+
+    return () => {
+      window.clearTimeout(timeout);
+    };
+  }, [session]);
 
   if (loading) {
     return (
@@ -113,6 +151,7 @@ const Layout = () => {
       <main className="app-main">
         <Outlet />
       </main>
+      {showLoginToast && <div className="toast">Пользователь вошёл</div>}
       {!hideNav && (
         <nav className="bottom-nav">
           {navItems.map((item) => (
