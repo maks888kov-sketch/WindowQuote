@@ -10,6 +10,14 @@ type AdminUser = {
   role: string;
 };
 
+type ApiPayload = {
+  ok?: boolean;
+  error?: string;
+  details?: string;
+  users?: AdminUser[];
+  [key: string]: unknown;
+};
+
 const roleOptions = ["admin", "manager", "measurer", "worker"];
 
 const formatDateTime = (value: string | null) => {
@@ -18,6 +26,30 @@ const formatDateTime = (value: string | null) => {
   }
 
   return new Date(value).toLocaleString();
+};
+
+const readApiPayload = async (response: Response): Promise<ApiPayload> => {
+  const raw = await response.text();
+  if (!raw) {
+    return { ok: response.ok };
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as ApiPayload;
+    return typeof parsed === "object" && parsed ? parsed : { ok: response.ok };
+  } catch {
+    return {
+      ok: false,
+      error: raw,
+      details: "Server returned a non-JSON response.",
+    };
+  }
+};
+
+const ensureApiSuccess = (response: Response, payload: ApiPayload, fallbackMessage: string) => {
+  if (!response.ok || payload.ok === false) {
+    throw new Error(payload.error ?? fallbackMessage);
+  }
 };
 
 const AdminUsersPage = () => {
@@ -56,10 +88,8 @@ const AdminUsersPage = () => {
         },
       });
 
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(payload.error ?? "Failed to load users.");
-      }
+      const payload = await readApiPayload(response);
+      ensureApiSuccess(response, payload, "Failed to load users.");
 
       setUsers(payload.users ?? []);
     } catch (error) {
@@ -90,10 +120,8 @@ const AdminUsersPage = () => {
         },
         body: JSON.stringify({ email: inviteEmail, orgId: activeOrgId, role: inviteRole }),
       });
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(payload.error ?? "Failed to invite user.");
-      }
+      const payload = await readApiPayload(response);
+      ensureApiSuccess(response, payload, "Failed to invite user.");
 
       setInviteEmail("");
       setMessage("User invited/added successfully.");
@@ -125,10 +153,8 @@ const AdminUsersPage = () => {
           },
         }
       );
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(payload.error ?? "Failed to delete user.");
-      }
+      const payload = await readApiPayload(response);
+      ensureApiSuccess(response, payload, "Failed to delete user.");
 
       setMessage("User deleted.");
       await loadUsers();
@@ -153,10 +179,8 @@ const AdminUsersPage = () => {
         },
         body: JSON.stringify({ orgId: activeOrgId, userId, role }),
       });
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(payload.error ?? "Failed to update role.");
-      }
+      const payload = await readApiPayload(response);
+      ensureApiSuccess(response, payload, "Failed to update role.");
 
       setMessage("Role updated.");
       await loadUsers();
