@@ -45,7 +45,7 @@ const OrgSelectPage = () => {
             </option>
             {orgs.map((org) => (
               <option key={org.org_id} value={org.org_id}>
-                {org.orgs?.name ?? org.org_id}
+                {org.orgs?.[0]?.name ?? org.org_id}
               </option>
             ))}
           </select>

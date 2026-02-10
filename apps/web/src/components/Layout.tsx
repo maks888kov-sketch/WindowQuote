@@ -16,7 +16,7 @@ const Layout = () => {
   const hideNav = location.pathname.startsWith("/orders/");
   const { session, orgs, activeOrgId, loading, authError } = useOrgContext();
 
-  const activeOrgName = orgs.find((org) => org.org_id === activeOrgId)?.orgs?.name;
+  const activeOrgName = orgs.find((org) => org.org_id === activeOrgId)?.orgs?.[0]?.name;
 
   if (loading) {
     return (
