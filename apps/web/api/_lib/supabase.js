@@ -1,19 +1,44 @@
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
 let cachedAdminClient = null;
+
+const pickFirstEnv = (keys) => {
+  for (const key of keys) {
+    const value = process.env[key];
+    if (typeof value === "string" && value.trim()) {
+      return value;
+    }
+  }
+  return "";
+};
+
+const readAdminEnv = () => {
+  const supabaseUrl = pickFirstEnv(["SUPABASE_URL", "SUPABASE_PROJECT_URL", "VITE_SUPABASE_URL"]);
+  const serviceRoleKey = pickFirstEnv(["SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_SERVICE_ROLE"]);
+
+  const missing = [];
+  if (!supabaseUrl) {
+    missing.push("SUPABASE_URL (fallbacks: SUPABASE_PROJECT_URL, VITE_SUPABASE_URL)");
+  }
+  if (!serviceRoleKey) {
+    missing.push("SUPABASE_SERVICE_ROLE_KEY (fallback: SUPABASE_SERVICE_ROLE)");
+  }
+
+  return { supabaseUrl, serviceRoleKey, missing };
+};
 
 export const getSupabaseAdmin = () => {
   if (cachedAdminClient) {
-    return { client: cachedAdminClient, error: null };
+    return { client: cachedAdminClient };
   }
 
-  if (!supabaseUrl || !serviceRoleKey) {
+  const { supabaseUrl, serviceRoleKey, missing } = readAdminEnv();
+  if (missing.length > 0) {
     return {
-      client: null,
-      error: "SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set for admin API routes.",
+      error: {
+        code: "MISSING_ENV",
+        missing,
+      },
     };
   }
 
@@ -24,7 +49,7 @@ export const getSupabaseAdmin = () => {
     },
   });
 
-  return { client: cachedAdminClient, error: null };
+  return { client: cachedAdminClient };
 };
 
 export const getBearerToken = (req) => {

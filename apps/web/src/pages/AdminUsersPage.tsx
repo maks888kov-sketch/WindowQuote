@@ -14,6 +14,7 @@ type ApiPayload = {
   ok?: boolean;
   error?: string;
   details?: string;
+  missing?: string[];
   users?: AdminUser[];
   [key: string]: unknown;
 };
@@ -46,9 +47,18 @@ const readApiPayload = async (response: Response): Promise<ApiPayload> => {
   }
 };
 
+const getApiErrorMessage = (payload: ApiPayload, fallbackMessage: string) => {
+  if (payload.error === "MISSING_ENV") {
+    const missingVars = Array.isArray(payload.missing) ? payload.missing.join(", ") : "unknown";
+    return `Server env missing: ${missingVars}`;
+  }
+
+  return `Admin API error: ${payload.error ?? fallbackMessage}`;
+};
+
 const ensureApiSuccess = (response: Response, payload: ApiPayload, fallbackMessage: string) => {
   if (!response.ok || payload.ok === false) {
-    throw new Error(payload.error ?? fallbackMessage);
+    throw new Error(getApiErrorMessage(payload, fallbackMessage));
   }
 };
 

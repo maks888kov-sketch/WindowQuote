@@ -15,7 +15,15 @@ export default async function handler(req, res) {
 
     const { client: supabaseAdmin, error: adminClientError } = getSupabaseAdmin();
     if (adminClientError) {
-      return jsonResponse(res, 500, { ok: false, error: adminClientError });
+      if (adminClientError.code === "MISSING_ENV") {
+        return jsonResponse(res, 500, {
+          ok: false,
+          error: "MISSING_ENV",
+          missing: adminClientError.missing ?? [],
+        });
+      }
+
+      return jsonResponse(res, 500, { ok: false, error: "ADMIN_CLIENT_NOT_CONFIGURED" });
     }
 
     const accessToken = getBearerToken(req);
