@@ -15,8 +15,14 @@ type ApiPayload = {
   error?: string;
   details?: string;
   missing?: string[];
+  where?: string;
+  hint?: string;
   users?: AdminUser[];
   [key: string]: unknown;
+};
+
+type ApiError = Error & {
+  payload?: ApiPayload;
 };
 
 const roleOptions = ["admin", "manager", "measurer", "worker"];
@@ -58,7 +64,9 @@ const getApiErrorMessage = (payload: ApiPayload, fallbackMessage: string) => {
 
 const ensureApiSuccess = (response: Response, payload: ApiPayload, fallbackMessage: string) => {
   if (!response.ok || payload.ok === false) {
-    throw new Error(getApiErrorMessage(payload, fallbackMessage));
+    const apiError: ApiError = new Error(getApiErrorMessage(payload, fallbackMessage));
+    apiError.payload = payload;
+    throw apiError;
   }
 };
 
@@ -70,6 +78,7 @@ const AdminUsersPage = () => {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [showEnvHelp, setShowEnvHelp] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("worker");
 
@@ -89,6 +98,7 @@ const AdminUsersPage = () => {
 
     setLoading(true);
     setMessage(null);
+    setShowEnvHelp(false);
 
     try {
       const accessToken = await getAccessToken();
@@ -103,7 +113,11 @@ const AdminUsersPage = () => {
 
       setUsers(payload.users ?? []);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Failed to load users.");
+      const errorMessage = error instanceof Error ? error.message : "Failed to load users.";
+      setMessage(errorMessage);
+
+      const apiErrorPayload = (error as ApiError)?.payload;
+      setShowEnvHelp(apiErrorPayload?.error === "MISSING_ENV");
     } finally {
       setLoading(false);
     }
@@ -295,6 +309,11 @@ const AdminUsersPage = () => {
           </div>
         )}
         {message && <p className="notice">{message}</p>}
+        {showEnvHelp && (
+          <p className="notice">
+            Open Vercel Env Settings — Redeploy required.
+          </p>
+        )}
       </article>
     </section>
   );

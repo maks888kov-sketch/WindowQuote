@@ -27,7 +27,27 @@ const readAdminEnv = () => {
   return { supabaseUrl, serviceRoleKey, missing };
 };
 
+const buildMissingEnvError = (missing) => ({
+  code: "MISSING_ENV",
+  missing,
+  where: "vercel_project_env",
+  hint: "Add SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in Vercel Project Settings → Environment Variables, then Redeploy",
+});
+
+const logAdminEnvDiagnostics = () => {
+  const { missing } = readAdminEnv();
+  const missingEnv = missing.length > 0 ? missing : ["none"];
+
+  console.info("[admin-env] diagnostics", {
+    has_SUPABASE_URL: !missing.some((item) => item.startsWith("SUPABASE_URL")),
+    has_SERVICE_ROLE: !missing.some((item) => item.startsWith("SUPABASE_SERVICE_ROLE_KEY")),
+    missing: missingEnv,
+  });
+};
+
 export const getSupabaseAdmin = () => {
+  logAdminEnvDiagnostics();
+
   if (cachedAdminClient) {
     return { client: cachedAdminClient };
   }
@@ -35,10 +55,7 @@ export const getSupabaseAdmin = () => {
   const { supabaseUrl, serviceRoleKey, missing } = readAdminEnv();
   if (missing.length > 0) {
     return {
-      error: {
-        code: "MISSING_ENV",
-        missing,
-      },
+      error: buildMissingEnvError(missing),
     };
   }
 
@@ -50,6 +67,15 @@ export const getSupabaseAdmin = () => {
   });
 
   return { client: cachedAdminClient };
+};
+
+export const getAdminEnvStatus = () => {
+  const { missing } = readAdminEnv();
+  return {
+    has_SUPABASE_URL: !missing.some((item) => item.startsWith("SUPABASE_URL")),
+    has_SERVICE_ROLE: !missing.some((item) => item.startsWith("SUPABASE_SERVICE_ROLE_KEY")),
+    vercel_env: process.env.VERCEL_ENV || process.env.NODE_ENV || "development",
+  };
 };
 
 export const getBearerToken = (req) => {
