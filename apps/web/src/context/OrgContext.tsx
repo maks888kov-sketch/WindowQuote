@@ -53,7 +53,7 @@ export const OrgProvider = ({ children }: { children: React.ReactNode }) => {
 
     if (error) {
       if ((error as any)?.code === "PGRST301") {
-        setAuthError("Недостаточно прав для доступа к организации. Перезайдите.");
+        setAuthError("РќРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ РїСЂР°РІ РґР»СЏ РґРѕСЃС‚СѓРїР° Рє РѕСЂРіР°РЅРёР·Р°С†РёРё. РџРµСЂРµР·Р°Р№РґРёС‚Рµ.");
       } else {
         setAuthError(error.message);
       }

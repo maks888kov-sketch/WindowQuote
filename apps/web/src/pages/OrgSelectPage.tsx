@@ -21,8 +21,8 @@ const OrgSelectPage = () => {
   if (orgs.length === 0) {
     return (
       <section className="card stack">
-        <h1>Нет организаций</h1>
-        <p>У вашего пользователя пока нет доступа ни к одной организации.</p>
+        <h1>РќРµС‚ РѕСЂРіР°РЅРёР·Р°С†РёР№</h1>
+        <p>РЈ РІР°С€РµРіРѕ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ РїРѕРєР° РЅРµС‚ РґРѕСЃС‚СѓРїР° РЅРё Рє РѕРґРЅРѕР№ РѕСЂРіР°РЅРёР·Р°С†РёРё.</p>
         <div className="row">
           <NavLink className="btn" to="/onboarding">
             Create Org
@@ -44,28 +44,28 @@ const OrgSelectPage = () => {
 
   return (
     <section className="card">
-      <h1>Выберите организацию</h1>
-      <p>У аккаунта есть доступ к нескольким организациям.</p>
+      <h1>Р’С‹Р±РµСЂРёС‚Рµ РѕСЂРіР°РЅРёР·Р°С†РёСЋ</h1>
+      <p>РЈ Р°РєРєР°СѓРЅС‚Р° РµСЃС‚СЊ РґРѕСЃС‚СѓРї Рє РЅРµСЃРєРѕР»СЊРєРёРј РѕСЂРіР°РЅРёР·Р°С†РёСЏРј.</p>
       <form className="stack" onSubmit={handleSubmit}>
         <label className="field">
-          Организация
+          РћСЂРіР°РЅРёР·Р°С†РёСЏ
           <select
             value={selectedOrgId}
             onChange={(event) => setSelectedOrgId(event.target.value)}
             required
           >
             <option value="" disabled>
-              Выберите организацию
+              Р’С‹Р±РµСЂРёС‚Рµ РѕСЂРіР°РЅРёР·Р°С†РёСЋ
             </option>
             {orgs.map((org) => (
               <option key={org.org_id} value={org.org_id}>
-                {org.orgs?.[0]?.name ?? "Без названия"}
+                {org.orgs?.[0]?.name ?? "Р‘РµР· РЅР°Р·РІР°РЅРёСЏ"}
               </option>
             ))}
           </select>
         </label>
         <button className="btn" type="submit">
-          Продолжить
+          РџСЂРѕРґРѕР»Р¶РёС‚СЊ
         </button>
       </form>
     </section>

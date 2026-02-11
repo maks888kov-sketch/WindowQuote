@@ -22,8 +22,8 @@ const AuthPage = () => {
         type: "error",
         message:
           mode === "sign-in"
-            ? `Ошибка входа: ${error.message}`
-            : `Ошибка регистрации: ${error.message}`,
+            ? `РћС€РёР±РєР° РІС…РѕРґР°: ${error.message}`
+            : `РћС€РёР±РєР° СЂРµРіРёСЃС‚СЂР°С†РёРё: ${error.message}`,
       });
       return;
     }
@@ -45,7 +45,7 @@ const AuthPage = () => {
         await supabase.rpc("log_auth_event", { p_org_id: orgIdForLog, p_event: "login" });
       }
 
-      notify({ type: "success", message: `Вход выполнен: ${data.user?.email ?? email}` });
+      notify({ type: "success", message: `Р’С…РѕРґ РІС‹РїРѕР»РЅРµРЅ: ${data.user?.email ?? email}` });
       return;
     }
 
@@ -53,8 +53,8 @@ const AuthPage = () => {
     notify({
       type: "success",
       message: needsEmailConfirmation
-        ? `Регистрация успешна: письмо отправлено на ${email}`
-        : `Аккаунт создан: ${data.user?.email ?? email}`,
+        ? `Р РµРіРёСЃС‚СЂР°С†РёСЏ СѓСЃРїРµС€РЅР°: РїРёСЃСЊРјРѕ РѕС‚РїСЂР°РІР»РµРЅРѕ РЅР° ${email}`
+        : `РђРєРєР°СѓРЅС‚ СЃРѕР·РґР°РЅ: ${data.user?.email ?? email}`,
     });
   };
 

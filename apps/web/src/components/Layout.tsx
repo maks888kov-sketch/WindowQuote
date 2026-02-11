@@ -31,16 +31,16 @@ const Layout = () => {
     return baseNavItems;
   }, [activeMembership?.role]);
 
-  const activeOrgName = activeMembership?.orgs?.[0]?.name ?? "Не выбрана";
-  const currentUserEmail = session?.user?.email ?? "—";
+  const activeOrgName = activeMembership?.orgs?.[0]?.name ?? "РќРµ РІС‹Р±СЂР°РЅР°";
+  const currentUserEmail = session?.user?.email ?? "вЂ”";
 
   const handleSignOut = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) {
-      notify({ type: "error", message: `Ошибка выхода: ${error.message}` });
+      notify({ type: "error", message: `РћС€РёР±РєР° РІС‹С…РѕРґР°: ${error.message}` });
       return;
     }
-    notify({ type: "success", message: "Выход выполнен успешно." });
+    notify({ type: "success", message: "Р’С‹С…РѕРґ РІС‹РїРѕР»РЅРµРЅ СѓСЃРїРµС€РЅРѕ." });
   };
 
   const handleOrgSwitch = (event: ChangeEvent<HTMLSelectElement>) => {
@@ -57,20 +57,20 @@ const Layout = () => {
     <div>
       <p className="app-title">WindowQuote</p>
       <p className="app-subtitle">Measurement & Order Console</p>
-      <p className="app-subtitle">Вы вошли как: {currentUserEmail}</p>
+      <p className="app-subtitle">Р’С‹ РІРѕС€Р»Рё РєР°Рє: {currentUserEmail}</p>
       {orgs.length > 1 ? (
         <label className="field">
-          Организация
+          РћСЂРіР°РЅРёР·Р°С†РёСЏ
           <select value={activeOrgId ?? ""} onChange={handleOrgSwitch}>
             {orgs.map((org) => (
               <option key={org.org_id} value={org.org_id}>
-                {org.orgs?.[0]?.name ?? "Без названия"}
+                {org.orgs?.[0]?.name ?? "Р‘РµР· РЅР°Р·РІР°РЅРёСЏ"}
               </option>
             ))}
           </select>
         </label>
       ) : (
-        <p className="app-subtitle">Организация: {activeOrgName}</p>
+        <p className="app-subtitle">РћСЂРіР°РЅРёР·Р°С†РёСЏ: {activeOrgName}</p>
       )}
     </div>
   );

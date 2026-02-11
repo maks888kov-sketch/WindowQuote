@@ -37,7 +37,7 @@ const roleOptions = ["admin", "manager", "measurer", "worker"];
 
 const formatDateTime = (value: string | null) => {
   if (!value) {
-    return "—";
+    return "вЂ”";
   }
 
   return new Date(value).toLocaleString();
@@ -80,11 +80,11 @@ const ensureApiSuccess = (response: Response, payload: ApiPayload, fallbackMessa
 
 const formatOrganizations = (organizations: UserOrganization[] | undefined) => {
   if (!organizations || organizations.length === 0) {
-    return "—";
+    return "вЂ”";
   }
 
   return organizations
-    .map((organization) => `${organization.org_name ?? "Без названия"} (${organization.role})`)
+    .map((organization) => `${organization.org_name ?? "Р‘РµР· РЅР°Р·РІР°РЅРёСЏ"} (${organization.role})`)
     .join(", ");
 };
 
@@ -171,12 +171,12 @@ const AdminUsersPage = () => {
 
       setInviteEmail("");
       setMessage("User invited/added successfully.");
-      notify({ type: "success", message: `Пользователь ${inviteEmail} приглашён в организацию.` });
+      notify({ type: "success", message: `РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ ${inviteEmail} РїСЂРёРіР»Р°С€С‘РЅ РІ РѕСЂРіР°РЅРёР·Р°С†РёСЋ.` });
       await loadUsers();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to invite user.";
       setMessage(errorMessage);
-      notify({ type: "error", message: `Ошибка приглашения пользователя: ${errorMessage}` });
+      notify({ type: "error", message: `РћС€РёР±РєР° РїСЂРёРіР»Р°С€РµРЅРёСЏ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ: ${errorMessage}` });
     }
   };
 
@@ -243,7 +243,7 @@ const AdminUsersPage = () => {
   }
 
   if (!isAdmin) {
-    return <p className="notice">Нет доступа. Только admin может управлять пользователями.</p>;
+    return <p className="notice">РќРµС‚ РґРѕСЃС‚СѓРїР°. РўРѕР»СЊРєРѕ admin РјРѕР¶РµС‚ СѓРїСЂР°РІР»СЏС‚СЊ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏРјРё.</p>;
   }
 
   return (
@@ -295,7 +295,7 @@ const AdminUsersPage = () => {
                 <tr>
                   <th>Email</th>
                   <th>Role in active org</th>
-                  <th>Организации</th>
+                  <th>РћСЂРіР°РЅРёР·Р°С†РёРё</th>
                   <th>Created</th>
                   <th>Last sign in</th>
                   <th>Actions</th>
@@ -308,7 +308,7 @@ const AdminUsersPage = () => {
 
                   return (
                     <tr key={user.user_id}>
-                      <td>{user.email ?? "—"}</td>
+                      <td>{user.email ?? "вЂ”"}</td>
                       <td>
                         <select
                           value={activeOrgRole ?? ""}
@@ -344,7 +344,7 @@ const AdminUsersPage = () => {
           </div>
         )}
         {message && <p className="notice">{message}</p>}
-        {showEnvHelp && <p className="notice">Open Vercel Env Settings — Redeploy required.</p>}
+        {showEnvHelp && <p className="notice">Open Vercel Env Settings вЂ” Redeploy required.</p>}
       </article>
     </section>
   );
