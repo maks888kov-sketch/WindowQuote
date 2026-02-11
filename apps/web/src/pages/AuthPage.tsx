@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNotifications } from "../context/NotificationsContext";
 import { supabase } from "../lib/supabaseClient";
 
-const ACTIVE_ORG_STORAGE_KEY = "activeOrgId";
+const ACTIVE_ORG_STORAGE_KEY = "wq:selectedOrgId";
 
 const AuthPage = () => {
   const [email, setEmail] = useState("");
@@ -22,8 +22,8 @@ const AuthPage = () => {
         type: "error",
         message:
           mode === "sign-in"
-            ? `РћС€РёР±РєР° РІС…РѕРґР°: ${error.message}`
-            : `РћС€РёР±РєР° СЂРµРіРёСЃС‚СЂР°С†РёРё: ${error.message}`,
+            ? `Ошибка входа: ${error.message}`
+            : `Ошибка регистрации: ${error.message}`,
       });
       return;
     }
@@ -36,15 +36,16 @@ const AuthPage = () => {
         .eq("user_id", data.user?.id ?? "");
 
       const availableOrgIds = (memberships ?? []).map((membership) => membership.org_id);
-      const orgIdForLog = rememberedOrgId && availableOrgIds.includes(rememberedOrgId)
-        ? rememberedOrgId
-        : availableOrgIds[0];
+      const orgIdForLog =
+        rememberedOrgId && availableOrgIds.includes(rememberedOrgId)
+          ? rememberedOrgId
+          : availableOrgIds[0];
 
       if (orgIdForLog) {
         await supabase.rpc("log_auth_event", { p_org_id: orgIdForLog, p_event: "login" });
       }
 
-      notify({ type: "success", message: `Р’С…РѕРґ РІС‹РїРѕР»РЅРµРЅ: ${data.user?.email ?? email}` });
+      notify({ type: "success", message: `Вход выполнен: ${data.user?.email ?? email}` });
       return;
     }
 
@@ -52,8 +53,8 @@ const AuthPage = () => {
     notify({
       type: "success",
       message: needsEmailConfirmation
-        ? `Р РµРіРёСЃС‚СЂР°С†РёСЏ СѓСЃРїРµС€РЅР°: РїРёСЃСЊРјРѕ РѕС‚РїСЂР°РІР»РµРЅРѕ РЅР° ${email}`
-        : `РђРєРєР°СѓРЅС‚ СЃРѕР·РґР°РЅ: ${data.user?.email ?? email}`,
+        ? `Регистрация успешна: письмо отправлено на ${email}`
+        : `Аккаунт создан: ${data.user?.email ?? email}`,
     });
   };
 

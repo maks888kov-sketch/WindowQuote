@@ -18,7 +18,7 @@ type OrgContextValue = {
   authError: string | null;
 };
 
-const ACTIVE_ORG_STORAGE_KEY = "activeOrgId";
+const ACTIVE_ORG_STORAGE_KEY = "wq:selectedOrgId";
 
 const OrgContext = createContext<OrgContextValue | undefined>(undefined);
 
@@ -53,7 +53,7 @@ export const OrgProvider = ({ children }: { children: React.ReactNode }) => {
 
     if (error) {
       if ((error as any)?.code === "PGRST301") {
-        setAuthError("РќРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ РїСЂР°РІ РґР»СЏ РґРѕСЃС‚СѓРїР° Рє РѕСЂРіР°РЅРёР·Р°С†РёРё. РџРµСЂРµР·Р°Р№РґРёС‚Рµ.");
+        setAuthError("Недостаточно прав для доступа к организации. Перезайдите.");
       } else {
         setAuthError(error.message);
       }

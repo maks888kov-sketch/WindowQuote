@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { useOrgContext } from "../context/OrgContext";
 
 const OrgSelectPage = () => {
@@ -18,6 +18,20 @@ const OrgSelectPage = () => {
     }
   }, [activeOrgId, orgs]);
 
+  if (orgs.length === 0) {
+    return (
+      <section className="card stack">
+        <h1>Нет организаций</h1>
+        <p>У вашего пользователя пока нет доступа ни к одной организации.</p>
+        <div className="row">
+          <NavLink className="btn" to="/onboarding">
+            Create Org
+          </NavLink>
+        </div>
+      </section>
+    );
+  }
+
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!selectedOrgId) {
@@ -30,28 +44,28 @@ const OrgSelectPage = () => {
 
   return (
     <section className="card">
-      <h1>Р’С‹Р±РµСЂРёС‚Рµ РѕСЂРіР°РЅРёР·Р°С†РёСЋ</h1>
-      <p>РЈ Р°РєРєР°СѓРЅС‚Р° РµСЃС‚СЊ РґРѕСЃС‚СѓРї Рє РЅРµСЃРєРѕР»СЊРєРёРј РѕСЂРіР°РЅРёР·Р°С†РёСЏРј.</p>
+      <h1>Выберите организацию</h1>
+      <p>У аккаунта есть доступ к нескольким организациям.</p>
       <form className="stack" onSubmit={handleSubmit}>
         <label className="field">
-          РћСЂРіР°РЅРёР·Р°С†РёСЏ
+          Организация
           <select
             value={selectedOrgId}
             onChange={(event) => setSelectedOrgId(event.target.value)}
             required
           >
             <option value="" disabled>
-              Р’С‹Р±РµСЂРёС‚Рµ РѕСЂРіР°РЅРёР·Р°С†РёСЋ
+              Выберите организацию
             </option>
             {orgs.map((org) => (
               <option key={org.org_id} value={org.org_id}>
-                {org.orgs?.[0]?.name ?? org.org_id}
+                {org.orgs?.[0]?.name ?? "Без названия"}
               </option>
             ))}
           </select>
         </label>
         <button className="btn" type="submit">
-          РџСЂРѕРґРѕР»Р¶РёС‚СЊ
+          Продолжить
         </button>
       </form>
     </section>
