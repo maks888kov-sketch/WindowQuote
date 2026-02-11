@@ -39,7 +39,7 @@ const roleOptions = [...ALLOWED_ROLES];
 
 const formatDateTime = (value: string | null) => {
   if (!value) {
-    return "—";
+    return "пїЅ";
   }
 
   return new Date(value).toLocaleString();
@@ -85,10 +85,10 @@ const ensureApiSuccess = (response: Response, payload: ApiPayload, fallbackMessa
 
 const formatOrganizations = (organizations: UserOrganization[] | undefined) => {
   if (!organizations || organizations.length === 0) {
-    return "—";
+    return "пїЅ";
   }
 
-  return organizations.map((organization) => `${organization.name ?? "Без названия"} (${organization.role})`).join(", ");
+  return organizations.map((organization) => `${organization.name ?? "пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ"} (${organization.role})`).join(", ");
 };
 
 const AdminUsersPage = () => {
@@ -181,12 +181,12 @@ const AdminUsersPage = () => {
 
       setInviteEmail("");
       setMessage("User invited/added successfully.");
-      notify({ type: "success", message: `Пользователь ${inviteEmail} приглашён в организацию.` });
+      notify({ type: "success", message: `пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ ${inviteEmail} пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ.` });
       await loadUsers();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to invite user.";
       setMessage(errorMessage);
-      notify({ type: "error", message: `Ошибка приглашения пользователя: ${errorMessage}` });
+      notify({ type: "error", message: `пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ: ${errorMessage}` });
     }
   };
 
@@ -221,11 +221,15 @@ const AdminUsersPage = () => {
 
       setUsers((currentUsers) => currentUsers.filter((user) => user.user_id !== userId));
       setMessage("User deleted.");
-      notify({ type: "success", message: "Пользователь удалён." });
-    } catch (error) {
+      notify({ type: "success", message: "пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ." });    } catch (error) {
+      const apiPayload = (error as ApiError)?.payload;
+      if (apiPayload) {
+        console.error("[AdminUsersPage] delete failed", apiPayload);
+      }
+
       const errorMessage = error instanceof Error ? error.message : "Failed to delete user.";
       setMessage(errorMessage);
-      notify({ type: "error", message: `Ошибка удаления пользователя: ${errorMessage}` });
+      notify({ type: "error", message: `Failed to delete user: ${errorMessage}` });
     }
   };
 
@@ -296,7 +300,7 @@ const AdminUsersPage = () => {
   }
 
   if (!isAdmin) {
-    return <p className="notice">Нет доступа. Только admin может управлять пользователями.</p>;
+    return <p className="notice">пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ. пїЅпїЅпїЅпїЅпїЅпїЅ admin пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ.</p>;
   }
 
   return (
@@ -348,7 +352,7 @@ const AdminUsersPage = () => {
                 <tr>
                   <th>Email</th>
                   <th>Role in active org</th>
-                  <th>Организации</th>
+                  <th>пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ</th>
                   <th>Created</th>
                   <th>Last sign in</th>
                   <th>Actions</th>
@@ -360,7 +364,7 @@ const AdminUsersPage = () => {
 
                   return (
                     <tr key={user.user_id}>
-                      <td>{user.email ?? "—"}</td>
+                      <td>{user.email ?? "пїЅ"}</td>
                       <td>
                         <select
                           value={activeOrgRole ?? ""}
@@ -390,7 +394,7 @@ const AdminUsersPage = () => {
           </div>
         )}
         {message && <p className="notice">{message}</p>}
-        {showEnvHelp && <p className="notice">Open Vercel Env Settings — Redeploy required.</p>}
+        {showEnvHelp && <p className="notice">Open Vercel Env Settings пїЅ Redeploy required.</p>}
       </article>
     </section>
   );
