@@ -31,7 +31,7 @@ const Layout = () => {
     return baseNavItems;
   }, [activeMembership?.role]);
 
-  const activeOrgName = activeMembership?.orgs?.[0]?.name ?? "Не выбрана";
+  const activeOrgName = activeMembership?.org_name ?? "Не выбрана";
   const currentUserEmail = session?.user?.email ?? "—";
 
   const handleSignOut = async () => {
@@ -64,7 +64,7 @@ const Layout = () => {
           <select value={activeOrgId ?? ""} onChange={handleOrgSwitch}>
             {orgs.map((org) => (
               <option key={org.org_id} value={org.org_id}>
-                {org.orgs?.[0]?.name ?? "Без названия"}
+                {org.org_name}
               </option>
             ))}
           </select>

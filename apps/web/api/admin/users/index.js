@@ -1,5 +1,17 @@
 import { getBearerToken, getSupabaseAdmin, jsonResponse } from "../../_lib/supabase.js";
 
+const getOrgName = (orgs) => {
+  if (!orgs) {
+    return "Без названия";
+  }
+
+  if (Array.isArray(orgs)) {
+    return orgs[0]?.name ?? "Без названия";
+  }
+
+  return orgs.name ?? "Без названия";
+};
+
 export default async function handler(req, res) {
   try {
     if (req.method !== "GET") {
@@ -85,8 +97,8 @@ export default async function handler(req, res) {
     for (const membership of userMemberships ?? []) {
       const existing = organizationsByUser.get(membership.user_id) ?? [];
       existing.push({
-        org_id: membership.org_id,
-        org_name: membership.orgs?.[0]?.name ?? membership.org_id,
+        id: membership.org_id,
+        name: getOrgName(membership.orgs),
         role: membership.role,
       });
       organizationsByUser.set(membership.user_id, existing);
@@ -101,7 +113,7 @@ export default async function handler(req, res) {
         }
 
         const currentOrgMembership = orgId
-          ? organizations.find((organization) => organization.org_id === orgId)
+          ? organizations.find((organization) => organization.id === orgId)
           : null;
 
         return {

@@ -4,8 +4,8 @@ import { supabase } from "../lib/supabaseClient";
 
 type OrgMembership = {
   org_id: string;
+  org_name: string;
   role: string;
-  orgs?: { name: string }[] | null;
 };
 
 type OrgContextValue = {
@@ -21,6 +21,24 @@ type OrgContextValue = {
 const ACTIVE_ORG_STORAGE_KEY = "wq:selectedOrgId";
 
 const OrgContext = createContext<OrgContextValue | undefined>(undefined);
+
+type OrgRow = {
+  org_id: string;
+  role: string;
+  orgs?: { name?: string | null } | { name?: string | null }[] | null;
+};
+
+const getOrgName = (orgs: OrgRow["orgs"]) => {
+  if (!orgs) {
+    return "Без названия";
+  }
+
+  if (Array.isArray(orgs)) {
+    return orgs[0]?.name ?? "Без названия";
+  }
+
+  return orgs.name ?? "Без названия";
+};
 
 export const OrgProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
@@ -61,8 +79,14 @@ export const OrgProvider = ({ children }: { children: React.ReactNode }) => {
       return;
     }
 
+    const normalizedOrgs = ((data ?? []) as OrgRow[]).map((row) => ({
+      org_id: row.org_id,
+      org_name: getOrgName(row.orgs),
+      role: row.role,
+    }));
+
     setAuthError(null);
-    setOrgs(data ?? []);
+    setOrgs(normalizedOrgs);
   };
 
   useEffect(() => {

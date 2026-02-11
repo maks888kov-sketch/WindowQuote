@@ -4,8 +4,8 @@ import { useNotifications } from "../context/NotificationsContext";
 import { supabase } from "../lib/supabaseClient";
 
 type UserOrganization = {
-  org_id: string;
-  org_name: string;
+  id: string;
+  name: string;
   role: string;
 };
 
@@ -83,9 +83,7 @@ const formatOrganizations = (organizations: UserOrganization[] | undefined) => {
     return "—";
   }
 
-  return organizations
-    .map((organization) => `${organization.org_name ?? "Без названия"} (${organization.role})`)
-    .join(", ");
+  return organizations.map((organization) => `${organization.name ?? "Без названия"} (${organization.role})`).join(", ");
 };
 
 const AdminUsersPage = () => {
@@ -146,8 +144,7 @@ const AdminUsersPage = () => {
     void loadUsers();
   }, [loadUsers]);
 
-  const getActiveOrgRole = (user: AdminUser) =>
-    user.organizations?.find((organization) => organization.org_id === activeOrgId)?.role ?? null;
+  const getActiveOrgRole = (user: AdminUser) => user.organizations?.find((organization) => organization.id === activeOrgId)?.role ?? null;
 
   const handleInvite = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
