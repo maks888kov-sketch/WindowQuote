@@ -8,7 +8,12 @@ export default async function handler(req, res) {
     }
 
     const userId = typeof req.query.userId === "string" ? req.query.userId : "";
-    const orgId = typeof req.query.orgId === "string" ? req.query.orgId : "";
+    const orgId =
+      typeof req.query.orgId === "string"
+        ? req.query.orgId
+        : typeof req.body?.orgId === "string"
+          ? req.body.orgId
+          : "";
 
     if (!userId || !orgId) {
       return jsonResponse(res, 400, { ok: false, error: "userId and orgId are required." });
@@ -38,7 +43,7 @@ export default async function handler(req, res) {
       return jsonResponse(res, 500, { ok: false, error: deleteError.message });
     }
 
-    return jsonResponse(res, 200, { ok: true, success: true });
+    return jsonResponse(res, 200, { ok: true, userId });
   } catch (error) {
     return jsonResponse(res, 500, {
       ok: false,

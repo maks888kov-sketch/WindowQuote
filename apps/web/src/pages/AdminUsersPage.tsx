@@ -1,6 +1,7 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useOrgContext } from "../context/OrgContext";
 import { useNotifications } from "../context/NotificationsContext";
+import { ALLOWED_ROLES } from "../lib/roles";
 import { supabase } from "../lib/supabaseClient";
 
 type UserOrganization = {
@@ -26,6 +27,7 @@ type ApiPayload = {
   where?: string;
   hint?: string;
   users?: AdminUser[];
+  role?: string;
   [key: string]: unknown;
 };
 
@@ -33,7 +35,7 @@ type ApiError = Error & {
   payload?: ApiPayload;
 };
 
-const roleOptions = ["admin", "manager", "measurer", "worker"];
+const roleOptions = [...ALLOWED_ROLES];
 
 const formatDateTime = (value: string | null) => {
   if (!value) {
@@ -155,13 +157,21 @@ const AdminUsersPage = () => {
     setMessage(null);
     try {
       const accessToken = await getAccessToken();
+      const requestBody = { email: inviteEmail, orgId: activeOrgId, role: inviteRole };
+      console.debug("[AdminUsersPage] invite request", {
+        url: "/api/admin/users/invite",
+        method: "POST",
+        body: requestBody,
+        hasAuthorizationBearer: Boolean(accessToken),
+      });
+
       const response = await fetch("/api/admin/users/invite", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${accessToken}`,
         },
-        body: JSON.stringify({ email: inviteEmail, orgId: activeOrgId, role: inviteRole }),
+        body: JSON.stringify(requestBody),
       });
       const payload = await readApiPayload(response);
       ensureApiSuccess(response, payload, "Failed to invite user.");
@@ -190,20 +200,24 @@ const AdminUsersPage = () => {
     setMessage(null);
     try {
       const accessToken = await getAccessToken();
-      const response = await fetch(
-        `/api/admin/users/${encodeURIComponent(userId)}?orgId=${encodeURIComponent(activeOrgId)}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
-      );
+      const url = `/api/admin/users/${encodeURIComponent(userId)}?orgId=${encodeURIComponent(activeOrgId)}`;
+      console.debug("[AdminUsersPage] delete request", {
+        url,
+        method: "DELETE",
+        hasAuthorizationBearer: Boolean(accessToken),
+      });
+
+      const response = await fetch(url, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
       const payload = await readApiPayload(response);
       ensureApiSuccess(response, payload, "Failed to delete user.");
 
+      setUsers((currentUsers) => currentUsers.filter((user) => user.user_id !== userId));
       setMessage("User deleted.");
-      await loadUsers();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Failed to delete user.");
     }
@@ -217,19 +231,55 @@ const AdminUsersPage = () => {
     setMessage(null);
     try {
       const accessToken = await getAccessToken();
+      const requestBody = { orgId: activeOrgId, userId, role };
+      console.debug("[AdminUsersPage] set-role request", {
+        url: "/api/admin/org-members/set-role",
+        method: "POST",
+        body: requestBody,
+        hasAuthorizationBearer: Boolean(accessToken),
+      });
+
       const response = await fetch("/api/admin/org-members/set-role", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${accessToken}`,
         },
-        body: JSON.stringify({ orgId: activeOrgId, userId, role }),
+        body: JSON.stringify(requestBody),
       });
       const payload = await readApiPayload(response);
       ensureApiSuccess(response, payload, "Failed to update role.");
 
+      setUsers((currentUsers) =>
+        currentUsers.map((user) => {
+          if (user.user_id !== userId) {
+            return user;
+          }
+
+          const organizations = user.organizations ?? [];
+          const orgIndex = organizations.findIndex((organization) => organization.id === activeOrgId);
+
+          if (orgIndex === -1) {
+            return {
+              ...user,
+              organizations: [...organizations, { id: activeOrgId, name: "Active organization", role }],
+            };
+          }
+
+          const updatedOrganizations = [...organizations];
+          updatedOrganizations[orgIndex] = {
+            ...updatedOrganizations[orgIndex],
+            role,
+          };
+
+          return {
+            ...user,
+            organizations: updatedOrganizations,
+          };
+        })
+      );
+
       setMessage("Role updated.");
-      await loadUsers();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Failed to update role.");
     }
@@ -301,7 +351,6 @@ const AdminUsersPage = () => {
               <tbody>
                 {users.map((user) => {
                   const activeOrgRole = getActiveOrgRole(user);
-                  const canManageInActiveOrg = Boolean(activeOrgRole);
 
                   return (
                     <tr key={user.user_id}>
@@ -310,7 +359,6 @@ const AdminUsersPage = () => {
                         <select
                           value={activeOrgRole ?? ""}
                           onChange={(event) => void handleSetRole(user.user_id, event.target.value)}
-                          disabled={!canManageInActiveOrg}
                         >
                           {!activeOrgRole && <option value="">Not a member</option>}
                           {roleOptions.map((role) => (
@@ -324,12 +372,7 @@ const AdminUsersPage = () => {
                       <td>{formatDateTime(user.created_at)}</td>
                       <td>{formatDateTime(user.last_sign_in_at)}</td>
                       <td>
-                        <button
-                          className="btn secondary danger"
-                          type="button"
-                          onClick={() => void handleDelete(user.user_id)}
-                          disabled={!canManageInActiveOrg}
-                        >
+                        <button className="btn secondary danger" type="button" onClick={() => void handleDelete(user.user_id)}>
                           Delete
                         </button>
                       </td>

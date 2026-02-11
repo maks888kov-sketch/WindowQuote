@@ -1,4 +1,5 @@
 import { getBearerToken, getSupabaseAdmin, jsonResponse, verifyOrgAdmin } from "../../_lib/supabase.js";
+import { ALLOWED_ROLES, isAllowedRole } from "../../_lib/roles.js";
 
 export default async function handler(req, res) {
   try {
@@ -11,6 +12,14 @@ export default async function handler(req, res) {
 
     if (!orgId || !userId || !role) {
       return jsonResponse(res, 400, { ok: false, error: "orgId, userId and role are required." });
+    }
+
+    if (!isAllowedRole(role)) {
+      return jsonResponse(res, 400, {
+        ok: false,
+        error: "Invalid role.",
+        details: `Allowed roles: ${ALLOWED_ROLES.join(", ")}`,
+      });
     }
 
     const { client: supabaseAdmin, error: adminClientError } = getSupabaseAdmin();
@@ -32,13 +41,46 @@ export default async function handler(req, res) {
       return jsonResponse(res, adminCheck.status, { ok: false, error: adminCheck.error });
     }
 
-    const { error } = await supabaseAdmin.from("org_members").update({ role }).eq("org_id", orgId).eq("user_id", userId);
+    const { data: existingMembership, error: membershipFetchError } = await supabaseAdmin
+      .from("org_members")
+      .select("org_id,user_id")
+      .eq("org_id", orgId)
+      .eq("user_id", userId)
+      .maybeSingle();
 
-    if (error) {
-      return jsonResponse(res, 500, { ok: false, error: error.message });
+    if (membershipFetchError) {
+      return jsonResponse(res, 500, { ok: false, error: membershipFetchError.message });
     }
 
-    return jsonResponse(res, 200, { ok: true, success: true });
+    let mutationError = null;
+
+    if (!existingMembership) {
+      const { error } = await supabaseAdmin.from("org_members").insert({
+        org_id: orgId,
+        user_id: userId,
+        role,
+      });
+      mutationError = error;
+    } else {
+      const { error } = await supabaseAdmin
+        .from("org_members")
+        .update({ role })
+        .eq("org_id", orgId)
+        .eq("user_id", userId);
+      mutationError = error;
+    }
+
+    if (mutationError) {
+      return jsonResponse(res, 500, { ok: false, error: mutationError.message });
+    }
+
+    return jsonResponse(res, 200, {
+      ok: true,
+      orgId,
+      userId,
+      role,
+      membershipCreated: !existingMembership,
+    });
   } catch (error) {
     return jsonResponse(res, 500, {
       ok: false,

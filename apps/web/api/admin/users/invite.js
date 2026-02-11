@@ -1,4 +1,5 @@
 import { getBearerToken, getSupabaseAdmin, jsonResponse, verifyOrgAdmin } from "../../_lib/supabase.js";
+import { ALLOWED_ROLES, isAllowedRole } from "../../_lib/roles.js";
 
 export default async function handler(req, res) {
   try {
@@ -12,6 +13,14 @@ export default async function handler(req, res) {
 
     if (!email || !orgId) {
       return jsonResponse(res, 400, { ok: false, error: "email and orgId are required." });
+    }
+
+    if (!isAllowedRole(safeRole)) {
+      return jsonResponse(res, 400, {
+        ok: false,
+        error: "Invalid role.",
+        details: `Allowed roles: ${ALLOWED_ROLES.join(", ")}`,
+      });
     }
 
     const { client: supabaseAdmin, error: adminClientError } = getSupabaseAdmin();
@@ -70,9 +79,9 @@ export default async function handler(req, res) {
 
     return jsonResponse(res, 200, {
       ok: true,
-      success: true,
       user_id: targetUserId,
       invited: !inviteError,
+      role: safeRole,
     });
   } catch (error) {
     return jsonResponse(res, 500, {
