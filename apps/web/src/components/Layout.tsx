@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useOrgContext } from "../context/OrgContext";
+import { useNotifications } from "../context/NotificationsContext";
+import { supabase } from "../lib/supabaseClient";
 import AuthPage from "../pages/AuthPage";
 import OnboardingPage from "../pages/OnboardingPage";
 import OrgSelectPage from "../pages/OrgSelectPage";
-
-const LOGIN_TOAST_FLAG_KEY = "windowquote-login-toast";
 
 const baseNavItems = [
   { label: "Orders", to: "/orders" },
@@ -18,7 +18,7 @@ const Layout = () => {
   const location = useLocation();
   const hideNav = location.pathname.startsWith("/orders/");
   const { session, orgs, activeOrgId, loading, authError } = useOrgContext();
-  const [showLoginToast, setShowLoginToast] = useState(false);
+  const { notify } = useNotifications();
 
   const activeMembership = useMemo(
     () => orgs.find((org) => org.org_id === activeOrgId),
@@ -34,27 +34,14 @@ const Layout = () => {
 
   const activeOrgName = activeMembership?.orgs?.[0]?.name;
 
-  useEffect(() => {
-    if (!session) {
-      setShowLoginToast(false);
+  const handleSignOut = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      notify({ type: "error", message: `Ошибка выхода: ${error.message}` });
       return;
     }
-
-    if (sessionStorage.getItem(LOGIN_TOAST_FLAG_KEY) !== "1") {
-      return;
-    }
-
-    setShowLoginToast(true);
-    sessionStorage.removeItem(LOGIN_TOAST_FLAG_KEY);
-
-    const timeout = window.setTimeout(() => {
-      setShowLoginToast(false);
-    }, 3500);
-
-    return () => {
-      window.clearTimeout(timeout);
-    };
-  }, [session]);
+    notify({ type: "success", message: "Выход выполнен успешно." });
+  };
 
   if (loading) {
     return (
@@ -112,6 +99,9 @@ const Layout = () => {
             <p className="app-title">WindowQuote</p>
             <p className="app-subtitle">Measurement & Order Console</p>
           </div>
+          <button className="btn secondary" type="button" onClick={() => void handleSignOut()}>
+            Sign out
+          </button>
         </header>
         <main className="app-main">
           <OnboardingPage />
@@ -128,6 +118,9 @@ const Layout = () => {
             <p className="app-title">WindowQuote</p>
             <p className="app-subtitle">Measurement & Order Console</p>
           </div>
+          <button className="btn secondary" type="button" onClick={() => void handleSignOut()}>
+            Sign out
+          </button>
         </header>
         <main className="app-main">
           <OrgSelectPage />
@@ -144,14 +137,18 @@ const Layout = () => {
           <p className="app-subtitle">Measurement & Order Console</p>
           {activeOrgName && <p className="app-subtitle">Org: {activeOrgName}</p>}
         </div>
-        <NavLink className="btn" to="/onboarding">
-          Create Org
-        </NavLink>
+        <div className="row">
+          <NavLink className="btn" to="/onboarding">
+            Create Org
+          </NavLink>
+          <button className="btn secondary" type="button" onClick={() => void handleSignOut()}>
+            Sign out
+          </button>
+        </div>
       </header>
       <main className="app-main">
         <Outlet />
       </main>
-      {showLoginToast && <div className="toast">Пользователь вошёл</div>}
       {!hideNav && (
         <nav className="bottom-nav">
           {navItems.map((item) => (

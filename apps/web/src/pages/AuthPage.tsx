@@ -1,17 +1,15 @@
 import { useState } from "react";
+import { useNotifications } from "../context/NotificationsContext";
 import { supabase } from "../lib/supabaseClient";
 
 const ACTIVE_ORG_STORAGE_KEY = "activeOrgId";
-const LOGIN_TOAST_FLAG_KEY = "windowquote-login-toast";
 
 const AuthPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [message, setMessage] = useState<string | null>(null);
+  const { notify } = useNotifications();
 
   const handleAuth = async (mode: "sign-in" | "sign-up") => {
-    setMessage(null);
-
     const response =
       mode === "sign-in"
         ? await supabase.auth.signInWithPassword({ email, password })
@@ -20,7 +18,14 @@ const AuthPage = () => {
     const { data, error } = response;
 
     if (error) {
-      return setMessage(error.message);
+      notify({
+        type: "error",
+        message:
+          mode === "sign-in"
+            ? `Ошибка входа: ${error.message}`
+            : `Ошибка регистрации: ${error.message}`,
+      });
+      return;
     }
 
     if (mode === "sign-in") {
@@ -39,10 +44,17 @@ const AuthPage = () => {
         await supabase.rpc("log_auth_event", { p_org_id: orgIdForLog, p_event: "login" });
       }
 
-      sessionStorage.setItem(LOGIN_TOAST_FLAG_KEY, "1");
+      notify({ type: "success", message: `Вход выполнен: ${data.user?.email ?? email}` });
+      return;
     }
 
-    setMessage(mode === "sign-in" ? "Signed in." : "Check your email to confirm sign up.");
+    const needsEmailConfirmation = !data.session;
+    notify({
+      type: "success",
+      message: needsEmailConfirmation
+        ? `Регистрация успешна: письмо отправлено на ${email}`
+        : `Аккаунт создан: ${data.user?.email ?? email}`,
+    });
   };
 
   return (
@@ -87,7 +99,6 @@ const AuthPage = () => {
           </button>
         </div>
       </form>
-      {message && <p className="notice">{message}</p>}
     </section>
   );
 };

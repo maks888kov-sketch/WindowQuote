@@ -206,17 +206,35 @@ a {
   vertical-align: middle;
 }
 
-.toast {
+.toast-stack {
   position: fixed;
   left: 50%;
   bottom: 5.25rem;
   transform: translateX(-50%);
+  z-index: 30;
+  display: grid;
+  gap: 0.5rem;
+  width: min(90vw, 520px);
+}
+
+.toast {
   background: #0f172a;
   color: #fff;
   padding: 0.75rem 1rem;
   border-radius: 0.75rem;
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.3);
-  z-index: 30;
+}
+
+.toast-success {
+  background: #065f46;
+}
+
+.toast-error {
+  background: #991b1b;
+}
+
+.toast-info {
+  background: #1d4ed8;
 }
 
 @media (max-width: 720px) {

@@ -1,11 +1,13 @@
 import { FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "../lib/supabaseClient";
 import { useOrgContext } from "../context/OrgContext";
+import { useNotifications } from "../context/NotificationsContext";
+import { supabase } from "../lib/supabaseClient";
 
 const OnboardingPage = () => {
   const navigate = useNavigate();
-  const { refreshOrgs, setActiveOrgId } = useOrgContext();
+  const { refreshOrgs, setActiveOrgId, session } = useOrgContext();
+  const { notify } = useNotifications();
   const [orgName, setOrgName] = useState("");
   const [message, setMessage] = useState<string | null>(null);
 
@@ -15,7 +17,9 @@ const OnboardingPage = () => {
 
     const { data, error } = await supabase.rpc("create_org", { org_name: orgName });
     if (error) {
-      setMessage(error.message);
+      const errorText = `Ошибка создания организации: ${error.message}`;
+      setMessage(errorText);
+      notify({ type: "error", message: errorText });
       return;
     }
 
@@ -25,7 +29,10 @@ const OnboardingPage = () => {
     }
 
     await refreshOrgs();
+    const userLabel = session?.user?.email ?? session?.user?.id ?? "unknown user";
+    const successText = `Организация ${orgName} создана пользователем ${userLabel}`;
     setMessage("Organization created. You can now manage customers and orders.");
+    notify({ type: "success", message: successText });
     navigate("/orders", { replace: true });
   };
 

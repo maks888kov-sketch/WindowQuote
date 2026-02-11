@@ -1,6 +1,13 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
-import { supabase } from "../lib/supabaseClient";
 import { useOrgContext } from "../context/OrgContext";
+import { useNotifications } from "../context/NotificationsContext";
+import { supabase } from "../lib/supabaseClient";
+
+type UserOrganization = {
+  org_id: string;
+  org_name: string;
+  role: string;
+};
 
 type AdminUser = {
   user_id: string;
@@ -8,6 +15,7 @@ type AdminUser = {
   created_at: string;
   last_sign_in_at: string | null;
   role: string;
+  organizations?: UserOrganization[];
 };
 
 type ApiPayload = {
@@ -70,8 +78,19 @@ const ensureApiSuccess = (response: Response, payload: ApiPayload, fallbackMessa
   }
 };
 
+const formatOrganizations = (organizations: UserOrganization[] | undefined) => {
+  if (!organizations || organizations.length === 0) {
+    return "—";
+  }
+
+  return organizations
+    .map((organization) => `${organization.org_name} (${organization.role})`)
+    .join(", ");
+};
+
 const AdminUsersPage = () => {
   const { activeOrgId, orgs } = useOrgContext();
+  const { notify } = useNotifications();
   const activeMembership = useMemo(() => orgs.find((org) => org.org_id === activeOrgId), [orgs, activeOrgId]);
   const isAdmin = activeMembership?.role === "admin";
 
@@ -149,9 +168,12 @@ const AdminUsersPage = () => {
 
       setInviteEmail("");
       setMessage("User invited/added successfully.");
+      notify({ type: "success", message: `Пользователь ${inviteEmail} приглашён в организацию.` });
       await loadUsers();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Failed to invite user.");
+      const errorMessage = error instanceof Error ? error.message : "Failed to invite user.";
+      setMessage(errorMessage);
+      notify({ type: "error", message: `Ошибка приглашения пользователя: ${errorMessage}` });
     }
   };
 
@@ -270,6 +292,7 @@ const AdminUsersPage = () => {
                 <tr>
                   <th>Email</th>
                   <th>Role</th>
+                  <th>Организации</th>
                   <th>Created</th>
                   <th>Last sign in</th>
                   <th>Actions</th>
@@ -291,6 +314,7 @@ const AdminUsersPage = () => {
                         ))}
                       </select>
                     </td>
+                    <td>{formatOrganizations(user.organizations)}</td>
                     <td>{formatDateTime(user.created_at)}</td>
                     <td>{formatDateTime(user.last_sign_in_at)}</td>
                     <td>
