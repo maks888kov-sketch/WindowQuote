@@ -39,7 +39,7 @@ const roleOptions = [...ALLOWED_ROLES];
 
 const formatDateTime = (value: string | null) => {
   if (!value) {
-    return "вЂ”";
+    return "—";
   }
 
   return new Date(value).toLocaleString();
@@ -69,7 +69,10 @@ const getApiErrorMessage = (payload: ApiPayload, fallbackMessage: string) => {
     return `Server env missing: ${missingVars}`;
   }
 
-  return `Admin API error: ${payload.error ?? fallbackMessage}`;
+  const baseMessage = payload.error ?? fallbackMessage;
+  const details = typeof payload.details === "string" && payload.details.trim() ? ` (${payload.details})` : "";
+
+  return `Admin API error: ${baseMessage}${details}`;
 };
 
 const ensureApiSuccess = (response: Response, payload: ApiPayload, fallbackMessage: string) => {
@@ -82,10 +85,10 @@ const ensureApiSuccess = (response: Response, payload: ApiPayload, fallbackMessa
 
 const formatOrganizations = (organizations: UserOrganization[] | undefined) => {
   if (!organizations || organizations.length === 0) {
-    return "вЂ”";
+    return "—";
   }
 
-  return organizations.map((organization) => `${organization.name ?? "Р‘РµР· РЅР°Р·РІР°РЅРёСЏ"} (${organization.role})`).join(", ");
+  return organizations.map((organization) => `${organization.name ?? "Без названия"} (${organization.role})`).join(", ");
 };
 
 const AdminUsersPage = () => {
@@ -178,12 +181,12 @@ const AdminUsersPage = () => {
 
       setInviteEmail("");
       setMessage("User invited/added successfully.");
-      notify({ type: "success", message: `РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ ${inviteEmail} РїСЂРёРіР»Р°С€С‘РЅ РІ РѕСЂРіР°РЅРёР·Р°С†РёСЋ.` });
+      notify({ type: "success", message: `Пользователь ${inviteEmail} приглашён в организацию.` });
       await loadUsers();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to invite user.";
       setMessage(errorMessage);
-      notify({ type: "error", message: `РћС€РёР±РєР° РїСЂРёРіР»Р°С€РµРЅРёСЏ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ: ${errorMessage}` });
+      notify({ type: "error", message: `Ошибка приглашения пользователя: ${errorMessage}` });
     }
   };
 
@@ -218,8 +221,11 @@ const AdminUsersPage = () => {
 
       setUsers((currentUsers) => currentUsers.filter((user) => user.user_id !== userId));
       setMessage("User deleted.");
+      notify({ type: "success", message: "Пользователь удалён." });
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Failed to delete user.");
+      const errorMessage = error instanceof Error ? error.message : "Failed to delete user.";
+      setMessage(errorMessage);
+      notify({ type: "error", message: `Ошибка удаления пользователя: ${errorMessage}` });
     }
   };
 
@@ -290,7 +296,7 @@ const AdminUsersPage = () => {
   }
 
   if (!isAdmin) {
-    return <p className="notice">РќРµС‚ РґРѕСЃС‚СѓРїР°. РўРѕР»СЊРєРѕ admin РјРѕР¶РµС‚ СѓРїСЂР°РІР»СЏС‚СЊ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏРјРё.</p>;
+    return <p className="notice">Нет доступа. Только admin может управлять пользователями.</p>;
   }
 
   return (
@@ -342,7 +348,7 @@ const AdminUsersPage = () => {
                 <tr>
                   <th>Email</th>
                   <th>Role in active org</th>
-                  <th>РћСЂРіР°РЅРёР·Р°С†РёРё</th>
+                  <th>Организации</th>
                   <th>Created</th>
                   <th>Last sign in</th>
                   <th>Actions</th>
@@ -354,7 +360,7 @@ const AdminUsersPage = () => {
 
                   return (
                     <tr key={user.user_id}>
-                      <td>{user.email ?? "вЂ”"}</td>
+                      <td>{user.email ?? "—"}</td>
                       <td>
                         <select
                           value={activeOrgRole ?? ""}
@@ -384,7 +390,7 @@ const AdminUsersPage = () => {
           </div>
         )}
         {message && <p className="notice">{message}</p>}
-        {showEnvHelp && <p className="notice">Open Vercel Env Settings вЂ” Redeploy required.</p>}
+        {showEnvHelp && <p className="notice">Open Vercel Env Settings — Redeploy required.</p>}
       </article>
     </section>
   );
