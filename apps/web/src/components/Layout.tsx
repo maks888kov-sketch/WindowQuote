@@ -32,7 +32,8 @@ const Layout = () => {
     return baseNavItems;
   }, [activeMembership?.role]);
 
-  const activeOrgName = activeMembership?.orgs?.[0]?.name;
+  const activeOrgName = activeMembership?.orgs?.[0]?.name ?? "Не выбрана";
+  const currentUserEmail = session?.user?.email ?? "—";
 
   const handleSignOut = async () => {
     const { error } = await supabase.auth.signOut();
@@ -42,6 +43,15 @@ const Layout = () => {
     }
     notify({ type: "success", message: "Выход выполнен успешно." });
   };
+
+  const renderHeaderInfo = () => (
+    <div>
+      <p className="app-title">WindowQuote</p>
+      <p className="app-subtitle">Measurement & Order Console</p>
+      <p className="app-subtitle">Вы вошли как: {currentUserEmail}</p>
+      <p className="app-subtitle">Организация: {activeOrgName}</p>
+    </div>
+  );
 
   if (loading) {
     return (
@@ -95,10 +105,7 @@ const Layout = () => {
     return (
       <div className="app-shell">
         <header className="app-header">
-          <div>
-            <p className="app-title">WindowQuote</p>
-            <p className="app-subtitle">Measurement & Order Console</p>
-          </div>
+          {renderHeaderInfo()}
           <button className="btn secondary" type="button" onClick={() => void handleSignOut()}>
             Sign out
           </button>
@@ -114,10 +121,7 @@ const Layout = () => {
     return (
       <div className="app-shell">
         <header className="app-header">
-          <div>
-            <p className="app-title">WindowQuote</p>
-            <p className="app-subtitle">Measurement & Order Console</p>
-          </div>
+          {renderHeaderInfo()}
           <button className="btn secondary" type="button" onClick={() => void handleSignOut()}>
             Sign out
           </button>
@@ -132,11 +136,7 @@ const Layout = () => {
   return (
     <div className="app-shell">
       <header className="app-header">
-        <div>
-          <p className="app-title">WindowQuote</p>
-          <p className="app-subtitle">Measurement & Order Console</p>
-          {activeOrgName && <p className="app-subtitle">Org: {activeOrgName}</p>}
-        </div>
+        {renderHeaderInfo()}
         <div className="row">
           <NavLink className="btn" to="/onboarding">
             Create Org

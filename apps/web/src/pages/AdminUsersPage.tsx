@@ -14,7 +14,7 @@ type AdminUser = {
   email: string | null;
   created_at: string;
   last_sign_in_at: string | null;
-  role: string;
+  role: string | null;
   organizations?: UserOrganization[];
 };
 
@@ -84,7 +84,7 @@ const formatOrganizations = (organizations: UserOrganization[] | undefined) => {
   }
 
   return organizations
-    .map((organization) => `${organization.org_name} (${organization.role})`)
+    .map((organization) => `${organization.org_name ?? organization.org_id} (${organization.role})`)
     .join(", ");
 };
 
@@ -121,7 +121,7 @@ const AdminUsersPage = () => {
 
     try {
       const accessToken = await getAccessToken();
-      const response = await fetch(`/api/admin/users?orgId=${encodeURIComponent(activeOrgId)}`, {
+      const response = await fetch("/api/admin/users", {
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
@@ -130,7 +130,7 @@ const AdminUsersPage = () => {
       const payload = await readApiPayload(response);
       ensureApiSuccess(response, payload, "Failed to load users.");
 
-      setUsers(payload.users ?? []);
+      setUsers(Array.isArray(payload.users) ? payload.users : []);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to load users.";
       setMessage(errorMessage);
@@ -145,6 +145,9 @@ const AdminUsersPage = () => {
   useEffect(() => {
     void loadUsers();
   }, [loadUsers]);
+
+  const getActiveOrgRole = (user: AdminUser) =>
+    user.organizations?.find((organization) => organization.org_id === activeOrgId)?.role ?? null;
 
   const handleInvite = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -276,7 +279,7 @@ const AdminUsersPage = () => {
 
       <article className="card">
         <div className="row">
-          <h2>Organization users</h2>
+          <h2>All users</h2>
           <button className="btn secondary" type="button" onClick={() => void loadUsers()}>
             Refresh
           </button>
@@ -284,14 +287,14 @@ const AdminUsersPage = () => {
         {loading ? (
           <p>Loading users...</p>
         ) : users.length === 0 ? (
-          <p className="empty-state">No users found for the selected organization.</p>
+          <p className="empty-state">No users found.</p>
         ) : (
           <div className="table-wrap">
             <table className="table">
               <thead>
                 <tr>
                   <th>Email</th>
-                  <th>Role</th>
+                  <th>Role in active org</th>
                   <th>Организации</th>
                   <th>Created</th>
                   <th>Last sign in</th>
@@ -299,45 +302,49 @@ const AdminUsersPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {users.map((user) => (
-                  <tr key={user.user_id}>
-                    <td>{user.email ?? "—"}</td>
-                    <td>
-                      <select
-                        value={user.role}
-                        onChange={(event) => void handleSetRole(user.user_id, event.target.value)}
-                      >
-                        {roleOptions.map((role) => (
-                          <option key={role} value={role}>
-                            {role}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td>{formatOrganizations(user.organizations)}</td>
-                    <td>{formatDateTime(user.created_at)}</td>
-                    <td>{formatDateTime(user.last_sign_in_at)}</td>
-                    <td>
-                      <button
-                        className="btn secondary danger"
-                        type="button"
-                        onClick={() => void handleDelete(user.user_id)}
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {users.map((user) => {
+                  const activeOrgRole = getActiveOrgRole(user);
+                  const canManageInActiveOrg = Boolean(activeOrgRole);
+
+                  return (
+                    <tr key={user.user_id}>
+                      <td>{user.email ?? "—"}</td>
+                      <td>
+                        <select
+                          value={activeOrgRole ?? ""}
+                          onChange={(event) => void handleSetRole(user.user_id, event.target.value)}
+                          disabled={!canManageInActiveOrg}
+                        >
+                          {!activeOrgRole && <option value="">Not a member</option>}
+                          {roleOptions.map((role) => (
+                            <option key={role} value={role}>
+                              {role}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td>{formatOrganizations(user.organizations)}</td>
+                      <td>{formatDateTime(user.created_at)}</td>
+                      <td>{formatDateTime(user.last_sign_in_at)}</td>
+                      <td>
+                        <button
+                          className="btn secondary danger"
+                          type="button"
+                          onClick={() => void handleDelete(user.user_id)}
+                          disabled={!canManageInActiveOrg}
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         )}
         {message && <p className="notice">{message}</p>}
-        {showEnvHelp && (
-          <p className="notice">
-            Open Vercel Env Settings — Redeploy required.
-          </p>
-        )}
+        {showEnvHelp && <p className="notice">Open Vercel Env Settings — Redeploy required.</p>}
       </article>
     </section>
   );

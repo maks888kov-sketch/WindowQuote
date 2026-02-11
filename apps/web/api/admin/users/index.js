@@ -1,4 +1,4 @@
-import { getBearerToken, getSupabaseAdmin, jsonResponse, verifyOrgAdmin } from "../../_lib/supabase.js";
+import { getBearerToken, getSupabaseAdmin, jsonResponse } from "../../_lib/supabase.js";
 
 export default async function handler(req, res) {
   try {
@@ -7,10 +7,7 @@ export default async function handler(req, res) {
       return jsonResponse(res, 405, { ok: false, error: "METHOD_NOT_ALLOWED" });
     }
 
-    const { orgId } = req.query ?? {};
-    if (!orgId || typeof orgId !== "string") {
-      return jsonResponse(res, 400, { ok: false, error: "ORG_ID_REQUIRED" });
-    }
+    const orgId = typeof req.query?.orgId === "string" ? req.query.orgId : null;
 
     const { client: supabaseAdmin, error: adminClientError } = getSupabaseAdmin();
     if (adminClientError) {
@@ -28,25 +25,37 @@ export default async function handler(req, res) {
     }
 
     const token = getBearerToken(req);
-    const adminCheck = await verifyOrgAdmin(orgId, token, supabaseAdmin);
-    if (!adminCheck.ok) {
-      return jsonResponse(res, adminCheck.status, { ok: false, error: adminCheck.error });
+    if (!token) {
+      return jsonResponse(res, 401, { ok: false, error: "Missing Authorization Bearer token." });
     }
 
-    const { data: orgMembers, error: orgMembersError } = await supabaseAdmin
+    const { data: currentUserData, error: currentUserError } = await supabaseAdmin.auth.getUser(token);
+    if (currentUserError || !currentUserData?.user) {
+      return jsonResponse(res, 401, { ok: false, error: "Invalid or expired access token." });
+    }
+
+    let adminMembershipQuery = supabaseAdmin
       .from("org_members")
-      .select("user_id, role")
-      .eq("org_id", orgId);
+      .select("org_id, role")
+      .eq("user_id", currentUserData.user.id)
+      .eq("role", "admin");
 
-    if (orgMembersError) {
-      return jsonResponse(res, 500, { ok: false, error: "ORG_MEMBERS_FAILED", details: orgMembersError.message });
+    if (orgId) {
+      adminMembershipQuery = adminMembershipQuery.eq("org_id", orgId);
     }
 
-    const memberRows = orgMembers ?? [];
-    const memberUserIds = Array.from(new Set(memberRows.map((member) => member.user_id)));
+    const { data: adminMemberships, error: adminMembershipsError } = await adminMembershipQuery;
 
-    if (memberUserIds.length === 0) {
-      return jsonResponse(res, 200, { ok: true, users: [] });
+    if (adminMembershipsError) {
+      return jsonResponse(res, 500, {
+        ok: false,
+        error: "ADMIN_MEMBERSHIPS_FAILED",
+        details: adminMembershipsError.message,
+      });
+    }
+
+    if ((adminMemberships ?? []).length === 0) {
+      return jsonResponse(res, 403, { ok: false, error: "Only org admins can perform this action." });
     }
 
     const { data: usersData, error: usersError } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 });
@@ -54,12 +63,15 @@ export default async function handler(req, res) {
       return jsonResponse(res, 500, { ok: false, error: "LIST_USERS_FAILED", details: usersError.message });
     }
 
-    const usersById = new Map((usersData?.users ?? []).map((user) => [user.id, user]));
-
-    const { data: userMemberships, error: userMembershipsError } = await supabaseAdmin
+    let membershipsQuery = supabaseAdmin
       .from("org_members")
-      .select("user_id, org_id, role, orgs(name)")
-      .in("user_id", memberUserIds);
+      .select("user_id, org_id, role, orgs(name)");
+
+    if (orgId) {
+      membershipsQuery = membershipsQuery.eq("org_id", orgId);
+    }
+
+    const { data: userMemberships, error: userMembershipsError } = await membershipsQuery;
 
     if (userMembershipsError) {
       return jsonResponse(res, 500, {
@@ -80,20 +92,25 @@ export default async function handler(req, res) {
       organizationsByUser.set(membership.user_id, existing);
     }
 
-    const users = memberRows
-      .map((member) => {
-        const user = usersById.get(member.user_id);
-        if (!user) {
+    const users = (usersData?.users ?? [])
+      .map((user) => {
+        const organizations = organizationsByUser.get(user.id) ?? [];
+
+        if (orgId && organizations.length === 0) {
           return null;
         }
+
+        const currentOrgMembership = orgId
+          ? organizations.find((organization) => organization.org_id === orgId)
+          : null;
 
         return {
           user_id: user.id,
           email: user.email ?? null,
           created_at: user.created_at,
           last_sign_in_at: user.last_sign_in_at ?? null,
-          role: member.role,
-          organizations: organizationsByUser.get(member.user_id) ?? [],
+          role: currentOrgMembership?.role ?? null,
+          organizations,
         };
       })
       .filter(Boolean);
