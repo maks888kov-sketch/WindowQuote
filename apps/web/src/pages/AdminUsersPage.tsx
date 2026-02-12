@@ -203,7 +203,7 @@ const AdminUsersPage = () => {
     setMessage(null);
     try {
       const accessToken = await getAccessToken();
-      const url = `/api/admin/users/${encodeURIComponent(userId)}?orgId=${encodeURIComponent(activeOrgId)}`;
+      const url = `/api/admin/users/${encodeURIComponent(userId)}`;
       console.debug("[AdminUsersPage] delete request", {
         url,
         method: "DELETE",

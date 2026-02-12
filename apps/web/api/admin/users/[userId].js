@@ -1,4 +1,5 @@
-import { getBearerToken, getSupabaseAdmin, jsonResponse, verifyOrgAdmin } from "../../_lib/supabase.js";
+import { createClient } from "@supabase/supabase-js";
+import { getBearerToken, jsonResponse } from "../../_lib/supabase.js";
 
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -15,63 +16,58 @@ const normalizeUserId = (queryUserId) => {
   return "";
 };
 
-const resolveOrgId = (req) => {
-  if (typeof req.query?.orgId === "string" && req.query.orgId.trim()) {
-    return req.query.orgId.trim();
-  }
-
-  if (typeof req.body?.orgId === "string" && req.body.orgId.trim()) {
-    return req.body.orgId.trim();
-  }
-
-  return "";
+const setCorsHeaders = (res) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "DELETE,OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Authorization,Content-Type");
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
 };
 
-const cleanUserRelations = async (supabaseAdmin, userId) => {
-  const relationTables = ["org_members", "profiles"];
+const createSupabaseAdmin = () => {
+  const supabaseUrl = process.env.SUPABASE_URL?.trim() ?? "";
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() ?? "";
 
-  for (const table of relationTables) {
-    const { error } = await supabaseAdmin.from(table).delete().eq("user_id", userId);
-    if (error) {
-      return {
-        ok: false,
-        table,
-        error,
-      };
-    }
+  const missing = [];
+  if (!supabaseUrl) {
+    missing.push("SUPABASE_URL");
+  }
+  if (!serviceRoleKey) {
+    missing.push("SUPABASE_SERVICE_ROLE_KEY");
   }
 
-  return { ok: true };
+  if (missing.length > 0) {
+    return {
+      error: {
+        code: "MISSING_ENV",
+        missing,
+        details: "Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY on Vercel and redeploy.",
+      },
+    };
+  }
+
+  return {
+    client: createClient(supabaseUrl, serviceRoleKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    }),
+  };
 };
 
-const verifyAdminPermission = async (req, supabaseAdmin, accessToken, userId) => {
-  const orgId = resolveOrgId(req);
-
-  if (orgId) {
-    const adminCheck = await verifyOrgAdmin(orgId, accessToken, supabaseAdmin);
-    if (!adminCheck.ok) {
-      return { ok: false, status: adminCheck.status, error: adminCheck.error };
-    }
-
-    if (adminCheck.userId === userId) {
-      return {
-        ok: false,
-        status: 400,
-        error: "CANNOT_DELETE_SELF",
-        details: "Admin cannot delete own account from this screen.",
-      };
-    }
-
-    return { ok: true };
-  }
-
+const verifyAdminPermission = async (supabaseAdmin, accessToken, userId) => {
   if (!accessToken) {
     return { ok: false, status: 401, error: "Missing Authorization Bearer token." };
   }
 
   const { data: currentUserData, error: currentUserError } = await supabaseAdmin.auth.getUser(accessToken);
   if (currentUserError || !currentUserData?.user) {
-    return { ok: false, status: 401, error: "Invalid or expired access token.", details: currentUserError?.message };
+    return {
+      ok: false,
+      status: 401,
+      error: "Invalid or expired access token.",
+      details: currentUserError?.message,
+    };
   }
 
   if (currentUserData.user.id === userId) {
@@ -106,49 +102,48 @@ const verifyAdminPermission = async (req, supabaseAdmin, accessToken, userId) =>
 };
 
 export default async function handler(req, res) {
+  setCorsHeaders(res);
+
+  if (req.method === "OPTIONS") {
+    res.status(204).end();
+    return;
+  }
+
+  if (req.method !== "DELETE") {
+    res.setHeader("Allow", "DELETE, OPTIONS");
+    return jsonResponse(res, 405, { ok: false, error: "METHOD_NOT_ALLOWED" });
+  }
+
+  const userId = normalizeUserId(req.query?.userId);
+  if (!userId) {
+    return jsonResponse(res, 400, {
+      ok: false,
+      error: "BAD_REQUEST",
+      details: "userId is required.",
+    });
+  }
+
+  if (!UUID_REGEX.test(userId)) {
+    return jsonResponse(res, 400, {
+      ok: false,
+      error: "BAD_REQUEST",
+      details: "userId must be a valid UUID.",
+    });
+  }
+
+  const { client: supabaseAdmin, error: adminClientError } = createSupabaseAdmin();
+  if (adminClientError) {
+    return jsonResponse(res, 500, {
+      ok: false,
+      error: adminClientError.code,
+      missing: adminClientError.missing,
+      details: adminClientError.details,
+    });
+  }
+
   try {
-    if (req.method !== "DELETE") {
-      res.setHeader("Allow", "DELETE");
-      return jsonResponse(res, 405, { ok: false, error: "METHOD_NOT_ALLOWED" });
-    }
-
-    const userId = normalizeUserId(req.query?.userId);
-    if (!userId) {
-      return jsonResponse(res, 400, {
-        ok: false,
-        error: "BAD_REQUEST",
-        details: "userId is required.",
-      });
-    }
-
-    if (!UUID_REGEX.test(userId)) {
-      return jsonResponse(res, 400, {
-        ok: false,
-        error: "BAD_REQUEST",
-        details: "userId must be a valid UUID.",
-      });
-    }
-
-    const { client: supabaseAdmin, error: adminClientError } = getSupabaseAdmin();
-    if (adminClientError) {
-      if (adminClientError.code === "MISSING_ENV") {
-        return jsonResponse(res, 500, {
-          ok: false,
-          error: "MISSING_ENV",
-          missing: adminClientError.missing ?? [],
-          details: "Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY on Vercel and redeploy.",
-        });
-      }
-
-      return jsonResponse(res, 500, {
-        ok: false,
-        error: "ADMIN_CLIENT_NOT_CONFIGURED",
-        details: "Supabase admin client is not configured on server.",
-      });
-    }
-
     const accessToken = getBearerToken(req);
-    const permissionCheck = await verifyAdminPermission(req, supabaseAdmin, accessToken, userId);
+    const permissionCheck = await verifyAdminPermission(supabaseAdmin, accessToken, userId);
     if (!permissionCheck.ok) {
       return jsonResponse(res, permissionCheck.status, {
         ok: false,
@@ -157,19 +152,9 @@ export default async function handler(req, res) {
       });
     }
 
-    const relationCleanup = await cleanUserRelations(supabaseAdmin, userId);
-    if (!relationCleanup.ok) {
-      return jsonResponse(res, 500, {
-        ok: false,
-        error: "RELATION_CLEANUP_FAILED",
-        details: `${relationCleanup.table}: ${relationCleanup.error.message}`,
-      });
-    }
-
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
     if (deleteError) {
-      const status = deleteError.status && Number.isInteger(deleteError.status) ? deleteError.status : 500;
-      return jsonResponse(res, status, {
+      return jsonResponse(res, 500, {
         ok: false,
         error: "DELETE_USER_FAILED",
         details: deleteError.message,
