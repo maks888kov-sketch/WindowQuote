@@ -25,10 +25,10 @@ async function main() {
   const TEST_ID = "ADMIN_DELETE_RECORDS";
   const started = Date.now();
 
-  // Настройки через env (не хардкодь логин/пароль)
   const ADMIN_URL = process.env.ADMIN_URL;
   const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
   const ADMIN_PASS = process.env.ADMIN_PASS;
+  const DELETE_TARGET_EMAIL = process.env.DELETE_TARGET_EMAIL;
 
   if (!ADMIN_URL || !ADMIN_EMAIL || !ADMIN_PASS) {
     writeReport({
@@ -43,8 +43,21 @@ async function main() {
     process.exit(1);
   }
 
+  if (!DELETE_TARGET_EMAIL) {
+    writeReport({
+      test_id: TEST_ID,
+      ok: false,
+      started_at: nowIso(),
+      finished_at: nowIso(),
+      duration_sec: 0,
+      fail_reason: "MissingEnv",
+      details: { required: ["DELETE_TARGET_EMAIL"] },
+    });
+    process.exit(1);
+  }
+
   const headless = (process.env.TEST_HEADLESS ?? "1") === "1";
-  const timeoutMs = Number(process.env.TEST_TIMEOUT_MS ?? "20000");
+  const timeoutMs = Number(process.env.TEST_TIMEOUT_MS ?? "30000");
 
   const browser = await chromium.launch({ headless });
   const context = await browser.newContext();
@@ -52,27 +65,131 @@ async function main() {
   page.setDefaultTimeout(timeoutMs);
 
   try {
+    const base = ADMIN_URL.replace(/\/+$/, "");
+    const loginUrl = base + "/auth";
+    const usersUrl = base + "/admin/users";
+
+    // auto-confirm dialogs
+    page.on("dialog", async (dialog) => {
+      await dialog.accept();
+    });
+
     // =========================
-    // TODO: TEST STEPS HERE
+    // LOGIN
     // =========================
+    await page.goto(loginUrl, { waitUntil: "domcontentloaded" });
 
-    // 1) Открыть админку
-    await page.goto(ADMIN_URL, { waitUntil: "domcontentloaded" });
+    await page.locator('input[type="email"]').fill(ADMIN_EMAIL);
+    await page.locator('input[type="password"]').fill(ADMIN_PASS);
 
-    // 2) Логин (селекторы под себя!)
-    await page.locator('input[type="email"], input[name="email"]').first().fill(ADMIN_EMAIL);
-    await page.locator('input[type="password"], input[name="password"]').first().fill(ADMIN_PASS);
-    await page.locator('button:has-text("Sign in"), button:has-text("Log in"), button[type="submit"]').first().click();
+    // submit через Enter (надёжнее click)
+    await page.locator('input[type="password"]').press("Enter");
 
-    // 3) Дождаться загрузки
     await page.waitForLoadState("networkidle");
 
-    // !!! Сейчас тест специально падает, пока ты не вставишь реальные шаги удаления + проверку.
-    throw new Error("TesterNotImplemented: fill TODO block with delete + assert logic.");
+    // проверка что ушли со страницы логина
+    const stillOnLogin = await page
+      .locator('text="Sign in or create an account"')
+      .first()
+      .isVisible()
+      .catch(() => false);
+
+    if (stillOnLogin) {
+      throw new Error("LoginFailed");
+    }
+
 
     // =========================
-    // END TODO
+    // ORG SELECT (реальный рабочий)
     // =========================
+    
+    const orgHeader = page.locator('text="Выберите организацию"');
+    
+    const onOrgScreen = await orgHeader
+      .isVisible()
+      .catch(() => false);
+    
+    if (onOrgScreen) {
+      const select = page.locator("select").first();
+      await select.waitFor({ state: "visible" });
+    
+      const options = select.locator("option");
+      const count = await options.count();
+    
+      let valueToSelect = null;
+    
+      for (let i = 0; i < count; i++) {
+        const value = await options.nth(i).getAttribute("value");
+        if (value && value.trim() !== "") {
+          valueToSelect = value;
+          break;
+        }
+      }
+    
+      if (!valueToSelect) {
+        throw new Error("OrgSelectFailed");
+      }
+    
+      // выбрать org
+      await select.selectOption(valueToSelect);
+    
+      // принудительно триггерим change
+      await select.dispatchEvent("change");
+    
+      // нажать продолжить
+      const continueBtn = page.locator('button:has-text("Продолжить")');
+      await continueBtn.click();
+    
+      // ждём исчезновение guard-экрана
+      await orgHeader.waitFor({ state: "detached", timeout: 30000 });
+    
+      await page.waitForLoadState("networkidle");
+    }
+    
+
+    // =========================
+    // USERS PAGE (жёсткий переход)
+    // =========================
+    
+    // иногда selector остаётся на той же странице → принудительно идём в users
+    await page.goto(usersUrl, { waitUntil: "domcontentloaded" });
+    
+    // ждём либо таблицу, либо сообщение “нет данных”
+    await page.waitForFunction(() => {
+      return (
+        document.querySelector("tbody tr") ||
+        document.body.innerText.includes("No users") ||
+        document.body.innerText.includes("Users")
+      );
+    }, { timeout: 30000 });
+
+    // =========================
+    // FIND TARGET
+    // =========================
+    const row = page.locator(`tbody tr:has-text("${DELETE_TARGET_EMAIL}")`);
+    const count = await row.count();
+
+    if (count === 0) {
+      throw new Error(`TargetNotFound: ${DELETE_TARGET_EMAIL}`);
+    }
+
+    // =========================
+    // DELETE
+    // =========================
+    await row.first().locator('button:has-text("Delete")').click();
+
+    await page.waitForTimeout(2000);
+
+    // =========================
+    // VERIFY
+    // =========================
+    const stillThere = await page
+      .locator(`tbody tr:has-text("${DELETE_TARGET_EMAIL}")`)
+      .count();
+
+    if (stillThere !== 0) {
+      throw new Error("RecordsNotDeleted");
+    }
 
   } catch (e) {
     try {

@@ -1,0 +1,100 @@
+{
+  "project": {
+    "name": "WindowQuote",
+    "repository_root": ".",
+    "framework": {
+      "frontend": "React 18 + Vite + TypeScript",
+      "routing": "react-router-dom (BrowserRouter)",
+      "backend_api": "Vercel-style serverless handlers in apps/web/api/*.js"
+    }
+  },
+  "entry_points": {
+    "frontend": [
+      "apps/web/src/main.tsx",
+      "apps/web/src/App.tsx"
+    ],
+    "api": [
+      "apps/web/api/admin/users/index.js",
+      "apps/web/api/admin/users/[userId].js",
+      "apps/web/api/admin/users/invite.js",
+      "apps/web/api/admin/org-members/set-role.js"
+    ],
+    "automation": [
+      "tools/tester.js",
+      "tools/orchestrator.py"
+    ]
+  },
+  "key_folders": [
+    {
+      "path": "apps/web/src/pages",
+      "purpose": "UI pages including auth and admin users list"
+    },
+    {
+      "path": "apps/web/src/components",
+      "purpose": "App shell/layout and navigation"
+    },
+    {
+      "path": "apps/web/src/context",
+      "purpose": "Session/org context and notifications"
+    },
+    {
+      "path": "apps/web/api",
+      "purpose": "HTTP API handlers used by admin UI"
+    },
+    {
+      "path": "supabase/migrations",
+      "purpose": "Schema, functions, RLS, and DB logic"
+    },
+    {
+      "path": "tools",
+      "purpose": "Tester/orchestration scripts and generated maps"
+    }
+  ],
+  "admin_routes": {
+    "ui": [
+      {
+        "route": "/auth",
+        "page": "AuthPage",
+        "file": "apps/web/src/pages/AuthPage.tsx",
+        "description": "Email/password sign-in and sign-up via Supabase Auth"
+      },
+      {
+        "route": "/admin/users",
+        "page": "AdminUsersPage",
+        "file": "apps/web/src/pages/AdminUsersPage.tsx",
+        "description": "Admin users list, role update, invite/add, and delete"
+      }
+    ],
+    "api": [
+      {
+        "route": "/api/admin/users",
+        "methods": [
+          "GET"
+        ],
+        "file": "apps/web/api/admin/users/index.js"
+      },
+      {
+        "route": "/api/admin/users/:userId",
+        "methods": [
+          "DELETE",
+          "OPTIONS"
+        ],
+        "file": "apps/web/api/admin/users/[userId].js"
+      },
+      {
+        "route": "/api/admin/users/invite",
+        "methods": [
+          "POST"
+        ],
+        "file": "apps/web/api/admin/users/invite.js"
+      },
+      {
+        "route": "/api/admin/org-members/set-role",
+        "methods": [
+          "POST"
+        ],
+        "file": "apps/web/api/admin/org-members/set-role.js"
+      }
+    ]
+  }
+}

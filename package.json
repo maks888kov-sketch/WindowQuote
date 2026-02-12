@@ -27,6 +27,7 @@
     "node-domexception": "^1.0.0",
     "node-fetch": "^3.3.2",
     "npm-normalize-package-bin": "^5.0.0",
+    "openai": "^6.21.0",
     "proc-log": "^6.1.0",
     "read-cmd-shim": "^6.0.0",
     "signal-exit": "^4.1.0",

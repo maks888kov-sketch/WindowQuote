@@ -1,0 +1,21 @@
+{
+  "delete_flow": {
+    "request": {
+      "method": "DELETE",
+      "url_pattern": "/api/admin/users/{userId}",
+      "headers": {
+        "Authorization": "Bearer <Supabase access token>"
+      },
+      "body": null
+    },
+    "server_handler": {
+      "file": "apps/web/api/admin/users/[userId].js",
+      "mutation": "supabaseAdmin.auth.admin.deleteUser(userId)",
+      "notes": [
+        "Often fails if server env missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY",
+        "May block deleting self",
+        "May require admin org membership"
+      ]
+    }
+  }
+}

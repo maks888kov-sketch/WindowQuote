@@ -1,0 +1,64 @@
+{
+  "base_url_source": {
+    "env_var": "ADMIN_URL",
+    "used_in": [
+      "tools/tester.js"
+    ],
+    "notes": "Tester uses ADMIN_URL as base; you may use direct /auth and /admin/users routes."
+  },
+  "login": {
+    "route": "/auth",
+    "ui_file": "apps/web/src/pages/AuthPage.tsx",
+    "auth_type": "Supabase Auth email+password",
+    "selectors": {
+      "email_input": [
+        "input[type=\"email\"]",
+        "input[name=\"email\"]"
+      ],
+      "password_input": [
+        "input[type=\"password\"]",
+        "input[name=\"password\"]"
+      ],
+      "sign_in_button": [
+        "button:has-text(\"Sign in\")",
+        "button[type=\"submit\"]"
+      ],
+      "sign_up_button": [
+        "button:has-text(\"Sign up\")"
+      ]
+    }
+  },
+  "admin_users": {
+    "route": "/admin/users",
+    "ui_file": "apps/web/src/pages/AdminUsersPage.tsx",
+    "page_markers": [
+      "h1:has-text(\"Admin: Users\")",
+      "h2:has-text(\"All users\")"
+    ],
+    "table": {
+      "container": ".table-wrap",
+      "table": "table.table",
+      "row": "tbody tr",
+      "email_cell": "tbody tr td:nth-child(1)",
+      "role_select": "tbody tr td:nth-child(2) select",
+      "actions_cell": "tbody tr td:nth-child(6)"
+    },
+    "actions": {
+      "refresh_button": "button:has-text(\"Refresh\")",
+      "delete_button": "button:has-text(\"Delete\")",
+      "invite_button": "button:has-text(\"Invite / Add user\")"
+    },
+    "confirmation": {
+      "type": "window.confirm",
+      "text": "Delete this user? This action cannot be undone."
+    },
+    "post_delete_ui": {
+      "message": "User deleted.",
+      "notice_selector": "p.notice"
+    }
+  },
+  "nav": {
+    "admin_nav_link": "a:has-text(\"Admin\")",
+    "render_condition": "Visible only if active org membership role is admin"
+  }
+}
