@@ -3,14 +3,14 @@ const SitesPage = () => {
     <section className="stack">
       <div className="page-header">
         <div>
-          <h1>Sites</h1>
-          <p>Manage job sites linked to customers.</p>
+          <h1>Объекты</h1>
+          <p>Объекты (адреса) по клиентам.</p>
         </div>
-        <button className="btn">New site</button>
+        <button className="btn">Новый объект</button>
       </div>
       <div className="card">
         <div className="empty-state">
-          <p>No sites yet. Add a site once a customer is selected.</p>
+          <p>Пока нет объектов. Добавьте объект после выбора клиента.</p>
         </div>
       </div>
     </section>

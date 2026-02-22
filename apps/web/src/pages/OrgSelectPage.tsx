@@ -25,7 +25,7 @@ const OrgSelectPage = () => {
         <p>У вашего пользователя пока нет доступа ни к одной организации.</p>
         <div className="row">
           <NavLink className="btn" to="/onboarding">
-            Create Org
+            Создать организацию
           </NavLink>
         </div>
       </section>

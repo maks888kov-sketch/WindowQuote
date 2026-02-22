@@ -75,16 +75,16 @@ const TasksPage = () => {
   return (
     <section className="stack">
       <div className="page-header">
-        <h1>Tasks</h1>
-        <p>Tasks by assignee.</p>
+        <h1>Задачи</h1>
+        <p>Задачи по исполнителям.</p>
       </div>
       <div className="card">
         <label className="field" style={{ maxWidth: "240px" }}>
-          Filter by assignee
+          Фильтр по исполнителю
           <select value={filterAssignee} onChange={(e) => setFilterAssignee(e.target.value)}>
-            <option value="me">My tasks</option>
-            <option value="all">All tasks</option>
-            <option value="unassigned">Unassigned</option>
+            <option value="me">Мои задачи</option>
+            <option value="all">Все задачи</option>
+            <option value="unassigned">Без исполнителя</option>
             {members.map((m) => (
               <option key={m.user_id} value={m.user_id}>{m.email}</option>
             ))}
@@ -92,10 +92,10 @@ const TasksPage = () => {
         </label>
       </div>
       {loading ? (
-        <p>Loading...</p>
+        <p>Загрузка…</p>
       ) : tasks.length === 0 ? (
         <div className="card">
-          <p className="empty-state">No tasks found.</p>
+          <p className="empty-state">Задачи не найдены.</p>
         </div>
       ) : (
         <div className="card">
@@ -127,10 +127,10 @@ const TasksPage = () => {
                   )}
                 </div>
                 <select value={t.status} onChange={(e) => handleStatus(t.id, e.target.value)}>
-                  <option value="pending">Pending</option>
-                  <option value="in_progress">In progress</option>
-                  <option value="done">Done</option>
-                  <option value="cancelled">Cancelled</option>
+                  <option value="pending">Ожидает</option>
+                  <option value="in_progress">В работе</option>
+                  <option value="done">Готово</option>
+                  <option value="cancelled">Отменено</option>
                 </select>
               </div>
             ))}

@@ -3,11 +3,11 @@ import { NavLink, Outlet } from "react-router-dom";
 import { useOrgContext } from "../context/OrgContext";
 
 const adminNavItems = [
-  { label: "Users", to: "/admin/users" },
-  { label: "Organization", to: "/admin/org" },
-  { label: "Price books", to: "/admin/price-books" },
-  { label: "Inventory", to: "/admin/inventory" },
-  { label: "Audit log", to: "/admin/audit" },
+  { label: "Пользователи", to: "/admin/users" },
+  { label: "Организация", to: "/admin/org" },
+  { label: "Прайс-листы", to: "/admin/price-books" },
+  { label: "Склад", to: "/admin/inventory" },
+  { label: "Аудит", to: "/admin/audit" },
 ];
 
 const AdminLayout = () => {
@@ -20,7 +20,7 @@ const AdminLayout = () => {
   }
 
   if (!isAdmin) {
-    return <p className="notice">Access denied. Only admin role can access this section.</p>;
+    return <p className="notice">Доступ запрещён. Только администратор.</p>;
   }
 
   return (

@@ -11,7 +11,7 @@ import OrgSelectPage from "../pages/OrgSelectPage";
 const baseNavItems = [
   { label: "Заказы", to: "/orders", icon: "📋" },
   { label: "Задачи", to: "/tasks", icon: "✓" },
-  { label: "Dashboard", to: "/dashboard", icon: "📊" },
+  { label: "Панель", to: "/dashboard", icon: "📊" },
   { label: "Клиенты", to: "/customers", icon: "👤" },
   { label: "Объекты", to: "/sites", icon: "📍" },
 ];
@@ -87,11 +87,11 @@ const Layout = () => {
         <header className="app-header">
           <div>
             <p className="app-title">WindowQuote</p>
-            <p className="app-subtitle">Measurement & Order Console</p>
+            <p className="app-subtitle">Замеры и сметы окон и дверей</p>
           </div>
         </header>
         <main className="app-main">
-          <p className="notice">Loading organization context...</p>
+          <p className="notice">Загрузка организации…</p>
         </main>
       </div>
     );
@@ -103,7 +103,7 @@ const Layout = () => {
         <header className="app-header">
           <div>
             <p className="app-title">WindowQuote</p>
-            <p className="app-subtitle">Measurement & Order Console</p>
+            <p className="app-subtitle">Замеры и сметы окон и дверей</p>
           </div>
         </header>
         <main className="app-main">
@@ -119,7 +119,7 @@ const Layout = () => {
         <header className="app-header">
           <div>
             <p className="app-title">WindowQuote</p>
-            <p className="app-subtitle">Measurement & Order Console</p>
+            <p className="app-subtitle">Замеры и сметы окон и дверей</p>
           </div>
         </header>
         <main className="app-main">
@@ -135,7 +135,7 @@ const Layout = () => {
         <header className="app-header">
           {renderHeaderInfo()}
           <button className="btn secondary" type="button" onClick={() => void handleSignOut()}>
-            Sign out
+            Выход
           </button>
         </header>
         <main className="app-main">
@@ -151,7 +151,7 @@ const Layout = () => {
         <header className="app-header">
           {renderHeaderInfo()}
           <button className="btn secondary" type="button" onClick={() => void handleSignOut()}>
-            Sign out
+            Выход
           </button>
         </header>
         <main className="app-main">
@@ -168,7 +168,7 @@ const Layout = () => {
         <div className="row">
           {permission === "default" && (
             <button className="btn secondary" type="button" onClick={() => void requestPermission()}>
-              Enable notifications
+              Уведомления
             </button>
           )}
           <NavLink className="btn secondary" to="/onboarding">
@@ -192,7 +192,7 @@ const Layout = () => {
           <button
             type="button"
             className="nav-toggle"
-            aria-label="Toggle menu"
+            aria-label="Меню"
             onClick={() => setNavOpen((o) => !o)}
           >
             <span className="nav-toggle-bar" />

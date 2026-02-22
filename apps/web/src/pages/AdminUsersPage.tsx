@@ -66,13 +66,13 @@ const readApiPayload = async (response: Response): Promise<ApiPayload> => {
 const getApiErrorMessage = (payload: ApiPayload, fallbackMessage: string) => {
   if (payload.error === "MISSING_ENV") {
     const missingVars = Array.isArray(payload.missing) ? payload.missing.join(", ") : "unknown";
-    return `Server env missing: ${missingVars}`;
+    return `Нет переменных окружения: ${missingVars}`;
   }
 
   const baseMessage = payload.error ?? fallbackMessage;
   const details = typeof payload.details === "string" && payload.details.trim() ? ` (${payload.details})` : "";
 
-  return `Admin API error: ${baseMessage}${details}`;
+  return `Ошибка API: ${baseMessage}${details}`;
 };
 
 const ensureApiSuccess = (response: Response, payload: ApiPayload, fallbackMessage: string) => {
@@ -88,7 +88,7 @@ const formatOrganizations = (organizations: UserOrganization[] | undefined) => {
     return "—";
   }
 
-  return organizations.map((organization) => `${organization.name ?? "No name"} (${organization.role})`).join(", ");
+  return organizations.map((organization) => `${organization.name ?? "—"} (${organization.role})`).join(", ");
 };
 
 const AdminUsersPage = () => {
@@ -131,11 +131,11 @@ const AdminUsersPage = () => {
       });
 
       const payload = await readApiPayload(response);
-      ensureApiSuccess(response, payload, "Failed to load users.");
+      ensureApiSuccess(response, payload, "Не удалось загрузить пользователей.");
 
       setUsers(Array.isArray(payload.users) ? payload.users : []);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to load users.";
+      const errorMessage = error instanceof Error ? error.message : "Не удалось загрузить пользователей.";
       setMessage(errorMessage);
 
       const apiErrorPayload = (error as ApiError)?.payload;
@@ -177,16 +177,16 @@ const AdminUsersPage = () => {
         body: JSON.stringify(requestBody),
       });
       const payload = await readApiPayload(response);
-      ensureApiSuccess(response, payload, "Failed to invite user.");
+      ensureApiSuccess(response, payload, "Не удалось пригласить пользователя.");
 
       setInviteEmail("");
-      setMessage("User invited/added successfully.");
-      notify({ type: "success", message: `User ${inviteEmail} invited to organization.` });
+      setMessage("Пользователь приглашён.");
+      notify({ type: "success", message: `Пользователь ${inviteEmail} приглашён в организацию.` });
       await loadUsers();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to invite user.";
       setMessage(errorMessage);
-      notify({ type: "error", message: `Failed to invite user: ${errorMessage}` });
+      notify({ type: "error", message: `Ошибка приглашения: ${errorMessage}` });
     }
   };
 
@@ -195,7 +195,7 @@ const AdminUsersPage = () => {
       return;
     }
 
-    const confirmed = window.confirm("Delete this user? This action cannot be undone.");
+    const confirmed = window.confirm("Удалить пользователя? Действие нельзя отменить.");
     if (!confirmed) {
       return;
     }
@@ -217,20 +217,20 @@ const AdminUsersPage = () => {
         },
       });
       const payload = await readApiPayload(response);
-      ensureApiSuccess(response, payload, "Failed to delete user.");
+      ensureApiSuccess(response, payload, "Не удалось удалить пользователя.");
 
       setUsers((currentUsers) => currentUsers.filter((user) => user.user_id !== userId));
-      setMessage("User deleted.");
-      notify({ type: "success", message: "User deleted." });
+      setMessage("Пользователь удалён.");
+      notify({ type: "success", message: "Пользователь удалён." });
     } catch (error) {
       const apiPayload = (error as ApiError)?.payload;
       if (apiPayload) {
         console.error("[AdminUsersPage] delete failed", apiPayload);
       }
 
-      const errorMessage = error instanceof Error ? error.message : "Failed to delete user.";
+      const errorMessage = error instanceof Error ? error.message : "Не удалось удалить пользователя.";
       setMessage(errorMessage);
-      notify({ type: "error", message: `Failed to delete user: ${errorMessage}` });
+      notify({ type: "error", message: `Ошибка удаления: ${errorMessage}` });
     }
   };
 
@@ -259,7 +259,7 @@ const AdminUsersPage = () => {
         body: JSON.stringify(requestBody),
       });
       const payload = await readApiPayload(response);
-      ensureApiSuccess(response, payload, "Failed to update role.");
+      ensureApiSuccess(response, payload, "Не удалось обновить роль.");
 
       setUsers((currentUsers) =>
         currentUsers.map((user) => {
@@ -273,7 +273,7 @@ const AdminUsersPage = () => {
           if (orgIndex === -1) {
             return {
               ...user,
-              organizations: [...organizations, { id: activeOrgId, name: "Active organization", role }],
+              organizations: [...organizations, { id: activeOrgId, name: "Текущая организация", role }],
             };
           }
 
@@ -290,25 +290,25 @@ const AdminUsersPage = () => {
         })
       );
 
-      setMessage("Role updated.");
+      setMessage("Роль обновлена.");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Failed to update role.");
+      setMessage(error instanceof Error ? error.message : "Не удалось обновить роль.");
     }
   };
 
   if (!activeOrgId) {
-    return <p className="notice">Select an organization first.</p>;
+    return <p className="notice">Сначала выберите организацию.</p>;
   }
 
   if (!isAdmin) {
-    return <p className="notice">Access denied. Only admin role can access this section.</p>;
+    return <p className="notice">Доступ запрещён. Только администратор может открыть этот раздел.</p>;
   }
 
   return (
     <section className="stack">
       <article className="card stack">
-        <h1>Admin: Users</h1>
-        <p>Invite users, change membership role, and remove accounts for this organization.</p>
+        <h1>Админ: Пользователи</h1>
+        <p>Приглашение, смена ролей и удаление аккаунтов в организации.</p>
         <form className="row form-wrap" onSubmit={handleInvite}>
           <label className="field">
             Email
@@ -320,7 +320,7 @@ const AdminUsersPage = () => {
             />
           </label>
           <label className="field">
-            Role
+            Роль
             <select value={inviteRole} onChange={(event) => setInviteRole(event.target.value)}>
               {roleOptions.map((role) => (
                 <option key={role} value={role}>
@@ -330,33 +330,33 @@ const AdminUsersPage = () => {
             </select>
           </label>
           <button className="btn" type="submit">
-            Invite / Add user
+            Пригласить / Добавить
           </button>
         </form>
       </article>
 
       <article className="card">
         <div className="row">
-          <h2>All users</h2>
+          <h2>Все пользователи</h2>
           <button className="btn secondary" type="button" onClick={() => void loadUsers()}>
-            Refresh
+            Обновить
           </button>
         </div>
         {loading ? (
-          <p>Loading users...</p>
+          <p>Загрузка пользователей…</p>
         ) : users.length === 0 ? (
-          <p className="empty-state">No users found.</p>
+          <p className="empty-state">Пользователи не найдены.</p>
         ) : (
           <div className="table-wrap">
             <table className="table">
               <thead>
                 <tr>
                   <th>Email</th>
-                  <th>Role in active org</th>
-                  <th>Organizations</th>
-                  <th>Created</th>
-                  <th>Last sign in</th>
-                  <th>Actions</th>
+                  <th>Роль в организации</th>
+                  <th>Организации</th>
+                  <th>Создан</th>
+                  <th>Последний вход</th>
+                  <th>Действия</th>
                 </tr>
               </thead>
               <tbody>
@@ -371,7 +371,7 @@ const AdminUsersPage = () => {
                           value={activeOrgRole ?? ""}
                           onChange={(event) => void handleSetRole(user.user_id, event.target.value)}
                         >
-                          {!activeOrgRole && <option value="">Not a member</option>}
+                          {!activeOrgRole && <option value="">Не в организации</option>}
                           {roleOptions.map((role) => (
                             <option key={role} value={role}>
                               {role}
@@ -384,7 +384,7 @@ const AdminUsersPage = () => {
                       <td>{formatDateTime(user.last_sign_in_at)}</td>
                       <td>
                         <button className="btn secondary danger" type="button" onClick={() => void handleDelete(user.user_id)}>
-                          Delete
+                          Удалить
                         </button>
                       </td>
                     </tr>
@@ -395,7 +395,7 @@ const AdminUsersPage = () => {
           </div>
         )}
         {message && <p className="notice">{message}</p>}
-        {showEnvHelp && <p className="notice">Open Vercel Env Settings. Redeploy required.</p>}
+        {showEnvHelp && <p className="notice">Настройте SUPABASE_SERVICE_ROLE_KEY в Vercel и перезапустите деплой.</p>}
       </article>
     </section>
   );

@@ -60,8 +60,8 @@ const AuthPage = () => {
 
   return (
     <section className="card">
-      <h1>Sign in or create an account</h1>
-      <p>Use Supabase Auth to access your organization workspace.</p>
+      <h1>Вход или регистрация</h1>
+      <p>Войдите для доступа к рабочему пространству организации.</p>
       <form
         className="stack"
         onSubmit={(event) => {
@@ -79,7 +79,7 @@ const AuthPage = () => {
           />
         </label>
         <label className="field">
-          Password
+          Пароль
           <input
             type="password"
             value={password}
@@ -89,14 +89,14 @@ const AuthPage = () => {
         </label>
         <div className="row">
           <button className="btn" type="submit">
-            Sign in
+            Войти
           </button>
           <button
             className="btn secondary"
             type="button"
             onClick={() => void handleAuth("sign-up")}
           >
-            Sign up
+            Регистрация
           </button>
         </div>
       </form>

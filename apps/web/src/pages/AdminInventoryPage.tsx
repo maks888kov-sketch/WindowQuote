@@ -36,7 +36,7 @@ const AdminInventoryPage = () => {
       if (error) throw error;
       setItems(data ?? []);
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Failed to load.");
+      setMessage(err instanceof Error ? err.message : "Не удалось загрузить.");
     } finally {
       setLoading(false);
     }
@@ -64,7 +64,7 @@ const AdminInventoryPage = () => {
       setShowForm(false);
       await load();
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Create failed.");
+      setMessage(err instanceof Error ? err.message : "Ошибка создания.");
     }
   };
 
@@ -88,58 +88,58 @@ const AdminInventoryPage = () => {
     await load();
   };
 
-  if (!activeOrgId) return <p className="notice">Select an organization first.</p>;
-  if (!isAdmin) return <p className="notice">Access denied.</p>;
+  if (!activeOrgId) return <p className="notice">Сначала выберите организацию.</p>;
+  if (!isAdmin) return <p className="notice">Доступ запрещён.</p>;
 
   return (
     <section className="stack">
       <article className="card stack">
         <div className="row" style={{ justifyContent: "space-between" }}>
-          <h1>Admin: Inventory</h1>
+          <h1>Админ: Склад</h1>
           <button className="btn" onClick={() => setShowForm(!showForm)}>
-            {showForm ? "Cancel" : "+ Add item"}
+            {showForm ? "Отмена" : "+ Добавить"}
           </button>
         </div>
-        <p>Stock items. Run migration 010_inventory.sql if tables do not exist.</p>
+        <p>Товары на складе.</p>
         {showForm && (
           <form className="row form-wrap" onSubmit={handleCreate}>
             <label className="field">
-              Name *
+              Название *
               <input type="text" value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} required />
             </label>
             <label className="field">
-              Code
+              Код
               <input type="text" value={form.code} onChange={(e) => setForm((p) => ({ ...p, code: e.target.value }))} />
             </label>
             <label className="field">
-              Unit
+              Ед. изм.
               <select value={form.unit} onChange={(e) => setForm((p) => ({ ...p, unit: e.target.value }))}>
                 <option value="pcs">pcs</option>
                 <option value="m2">m²</option>
               </select>
             </label>
             <label className="field">
-              Initial qty
+              Начальное кол-во
               <input type="number" step="0.01" value={form.quantity} onChange={(e) => setForm((p) => ({ ...p, quantity: e.target.value }))} />
             </label>
-            <button className="btn" type="submit">Create</button>
+            <button className="btn" type="submit">Создать</button>
           </form>
         )}
         {message && <p className="notice">{message}</p>}
         {loading ? (
-          <p>Loading...</p>
+          <p>Загрузка…</p>
         ) : items.length === 0 ? (
-          <p className="empty-state">No inventory items yet.</p>
+          <p className="empty-state">Пока нет товаров на складе.</p>
         ) : (
           <div className="table-wrap">
             <table className="table">
               <thead>
                 <tr>
-                  <th>Code</th>
-                  <th>Name</th>
-                  <th>Quantity</th>
-                  <th>Min</th>
-                  <th>Actions</th>
+                  <th>Код</th>
+                  <th>Название</th>
+                  <th>Кол-во</th>
+                  <th>Мин.</th>
+                  <th>Действия</th>
                 </tr>
               </thead>
               <tbody>

@@ -27,7 +27,7 @@ const App = () => {
     <Routes>
       <Route element={<Layout />}>
         <Route index element={<Navigate to="/orders" replace />} />
-        <Route path="/dashboard" element={<Suspense fallback={<p>Loading…</p>}><DashboardPage /></Suspense>} />
+        <Route path="/dashboard" element={<Suspense fallback={<p>Загрузка…</p>}><DashboardPage /></Suspense>} />
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/onboarding" element={<OnboardingPage />} />
         <Route path="/orgs/select" element={<OrgSelectPage />} />

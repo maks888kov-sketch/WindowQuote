@@ -156,10 +156,14 @@ export default async function handler(req, res) {
       });
     }
 
-    // Remove org memberships first to avoid FK constraints
+    // Remove related rows first to avoid FK constraints
     await supabaseAdmin.from("org_members").delete().eq("user_id", userId);
     await supabaseAdmin.from("push_subscriptions").delete().eq("user_id", userId);
-    await supabaseAdmin.from("profiles").delete().eq("user_id", userId);
+    await supabaseAdmin.from("auth_events").delete().eq("user_id", userId);
+    const { error: profilesError } = await supabaseAdmin.from("profiles").delete().eq("user_id", userId);
+    if (profilesError) {
+      console.warn("[admin/users] profiles delete warning:", profilesError.message);
+    }
 
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
     if (deleteError) {
@@ -168,7 +172,7 @@ export default async function handler(req, res) {
         error: "DELETE_USER_FAILED",
         details: deleteError.message,
         code: deleteError.code ?? null,
-        hint: deleteError.message?.includes("foreign key") ? "User may be referenced elsewhere. Try removing from all orgs first." : undefined,
+        hint: "Убедитесь, что SUPABASE_SERVICE_ROLE_KEY имеет права на удаление пользователей.",
       });
     }
 

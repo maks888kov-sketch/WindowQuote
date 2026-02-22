@@ -56,14 +56,14 @@ const AdminOrgPage = () => {
       const payload = await res.json();
 
       if (!res.ok || !payload.ok) {
-        throw new Error(payload.error ?? "Failed to update organization.");
+        throw new Error(payload.error ?? "Не удалось обновить организацию.");
       }
 
-      setMessage("Organization updated.");
-      notify({ type: "success", message: "Organization updated." });
+      setMessage("Организация обновлена.");
+      notify({ type: "success", message: "Организация обновлена." });
       await refreshOrgs?.();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed to update organization.";
+      const msg = err instanceof Error ? err.message : "Не удалось обновить организацию.";
       setMessage(msg);
       notify({ type: "error", message: msg });
     } finally {
@@ -72,11 +72,11 @@ const AdminOrgPage = () => {
   };
 
   if (!activeOrgId) {
-    return <p className="notice">Select an organization first.</p>;
+    return <p className="notice">Сначала выберите организацию.</p>;
   }
 
   if (!isAdmin) {
-    return <p className="notice">Access denied. Only admin role can access this section.</p>;
+    return <p className="notice">Доступ запрещён. Только администратор.</p>;
   }
 
   return (
