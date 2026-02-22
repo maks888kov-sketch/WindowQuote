@@ -39,7 +39,7 @@ const roleOptions = [...ALLOWED_ROLES];
 
 const formatDateTime = (value: string | null) => {
   if (!value) {
-    return "�";
+    return "—";
   }
 
   return new Date(value).toLocaleString();
@@ -85,10 +85,10 @@ const ensureApiSuccess = (response: Response, payload: ApiPayload, fallbackMessa
 
 const formatOrganizations = (organizations: UserOrganization[] | undefined) => {
   if (!organizations || organizations.length === 0) {
-    return "�";
+    return "—";
   }
 
-  return organizations.map((organization) => `${organization.name ?? "��� ��������"} (${organization.role})`).join(", ");
+  return organizations.map((organization) => `${organization.name ?? "No name"} (${organization.role})`).join(", ");
 };
 
 const AdminUsersPage = () => {
@@ -124,7 +124,7 @@ const AdminUsersPage = () => {
 
     try {
       const accessToken = await getAccessToken();
-      const response = await fetch("/api/admin/users", {
+      const response = await fetch(`/api/admin/users?orgId=${encodeURIComponent(activeOrgId)}`, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
@@ -181,12 +181,12 @@ const AdminUsersPage = () => {
 
       setInviteEmail("");
       setMessage("User invited/added successfully.");
-      notify({ type: "success", message: `������������ ${inviteEmail} ��������� � �����������.` });
+      notify({ type: "success", message: `User ${inviteEmail} invited to organization.` });
       await loadUsers();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to invite user.";
       setMessage(errorMessage);
-      notify({ type: "error", message: `������ ����������� ������������: ${errorMessage}` });
+      notify({ type: "error", message: `Failed to invite user: ${errorMessage}` });
     }
   };
 
@@ -221,7 +221,8 @@ const AdminUsersPage = () => {
 
       setUsers((currentUsers) => currentUsers.filter((user) => user.user_id !== userId));
       setMessage("User deleted.");
-      notify({ type: "success", message: "������������ �����." });    } catch (error) {
+      notify({ type: "success", message: "User deleted." });
+    } catch (error) {
       const apiPayload = (error as ApiError)?.payload;
       if (apiPayload) {
         console.error("[AdminUsersPage] delete failed", apiPayload);
@@ -300,7 +301,7 @@ const AdminUsersPage = () => {
   }
 
   if (!isAdmin) {
-    return <p className="notice">��� �������. ������ admin ����� ��������� ��������������.</p>;
+    return <p className="notice">Access denied. Only admin role can access this section.</p>;
   }
 
   return (
@@ -352,7 +353,7 @@ const AdminUsersPage = () => {
                 <tr>
                   <th>Email</th>
                   <th>Role in active org</th>
-                  <th>�����������</th>
+                  <th>Organizations</th>
                   <th>Created</th>
                   <th>Last sign in</th>
                   <th>Actions</th>
@@ -364,7 +365,7 @@ const AdminUsersPage = () => {
 
                   return (
                     <tr key={user.user_id}>
-                      <td>{user.email ?? "�"}</td>
+                      <td>{user.email ?? "—"}</td>
                       <td>
                         <select
                           value={activeOrgRole ?? ""}
@@ -394,7 +395,7 @@ const AdminUsersPage = () => {
           </div>
         )}
         {message && <p className="notice">{message}</p>}
-        {showEnvHelp && <p className="notice">Open Vercel Env Settings � Redeploy required.</p>}
+        {showEnvHelp && <p className="notice">Open Vercel Env Settings. Redeploy required.</p>}
       </article>
     </section>
   );

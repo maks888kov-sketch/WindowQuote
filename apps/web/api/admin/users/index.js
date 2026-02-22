@@ -2,14 +2,14 @@ import { getBearerToken, getSupabaseAdmin, jsonResponse } from "../../_lib/supab
 
 const getOrgName = (orgs) => {
   if (!orgs) {
-    return "Без названия";
+    return "No name";
   }
 
   if (Array.isArray(orgs)) {
-    return orgs[0]?.name ?? "Без названия";
+    return orgs[0]?.name ?? "No name";
   }
 
-  return orgs.name ?? "Без названия";
+  return orgs.name ?? "No name";
 };
 
 export default async function handler(req, res) {

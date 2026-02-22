@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useOrgContext } from "../context/OrgContext";
+import { useOffline } from "../context/OfflineContext";
+import { cacheOrders } from "../lib/offlineCache";
 import { supabase } from "../lib/supabaseClient";
 
 type OrderRecord = {
   id: string;
+  order_number?: string | null;
   title: string;
   status: string;
   created_at: string;
@@ -26,6 +29,7 @@ const statusOptions = ["draft", "quoted", "approved", "scheduled", "completed", 
 
 const OrdersPage = () => {
   const { activeOrgId } = useOrgContext();
+  const { online, getCachedOrdersForOrg, registerRetry } = useOffline();
   const [orders, setOrders] = useState<OrderRecord[]>([]);
   const [customers, setCustomers] = useState<CustomerOption[]>([]);
   const [sites, setSites] = useState<SiteOption[]>([]);
@@ -47,24 +51,36 @@ const OrdersPage = () => {
     }
 
     setLoading(true);
-    const query = supabase
+    if (!online) {
+      const cached = await getCachedOrdersForOrg(activeOrgId);
+      setOrders((cached as OrderRecord[]) ?? []);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
+    let query = supabase
       .from("orders")
-      .select("id, title, status, created_at, customers(name), sites(name)")
+      .select("id, order_number, title, status, created_at, org_id, customers(name), sites(name)")
       .eq("org_id", activeOrgId)
       .order("created_at", { ascending: false });
 
     if (statusFilter !== "all") {
-      query.eq("status", statusFilter);
+      query = query.eq("status", statusFilter);
     }
 
     const { data, error: fetchError } = await query;
 
     if (fetchError) {
       setError(fetchError.message);
-      setOrders([]);
+      const cached = await getCachedOrdersForOrg(activeOrgId);
+      setOrders((cached as OrderRecord[]) ?? []);
     } else {
       setError(null);
       setOrders(data ?? []);
+      if (data && data.length > 0) {
+        cacheOrders(activeOrgId, data);
+      }
     }
 
     setLoading(false);
@@ -146,6 +162,15 @@ const OrdersPage = () => {
     void loadCustomers();
     void loadSites();
   }, [activeOrgId]);
+
+  useEffect(() => {
+    const unregister = registerRetry(() => {
+      void loadOrders();
+      void loadCustomers();
+      void loadSites();
+    });
+    return unregister;
+  }, [registerRetry, activeOrgId, statusFilter]);
 
   return (
     <section className="stack">
@@ -233,7 +258,7 @@ const OrdersPage = () => {
             {orders.map((order) => (
               <div className="list-row" key={order.id}>
                 <div>
-                  <strong>{order.title}</strong>
+                  <strong>{order.order_number ? `${order.order_number} · ` : ""}{order.title}</strong>
                   <p>
                     {order.status} · {order.sites?.[0]?.name ?? "No site"}
                   </p>

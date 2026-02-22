@@ -30,14 +30,14 @@ type OrgRow = {
 
 const getOrgName = (orgs: OrgRow["orgs"]) => {
   if (!orgs) {
-    return "Без названия";
+    return "No name";
   }
 
   if (Array.isArray(orgs)) {
-    return orgs[0]?.name ?? "Без названия";
+    return orgs[0]?.name ?? "No name";
   }
 
-  return orgs.name ?? "Без названия";
+  return orgs.name ?? "No name";
 };
 
 export const OrgProvider = ({ children }: { children: React.ReactNode }) => {
@@ -71,7 +71,7 @@ export const OrgProvider = ({ children }: { children: React.ReactNode }) => {
 
     if (error) {
       if ((error as any)?.code === "PGRST301") {
-        setAuthError("Недостаточно прав для доступа к организации. Перезайдите.");
+        setAuthError("Insufficient permissions for organization access. Please sign in again.");
       } else {
         setAuthError(error.message);
       }

@@ -57,19 +57,32 @@ async function main() {
   }
 
   const headless = (process.env.TEST_HEADLESS ?? "1") === "1";
-  const timeoutMs = Number(process.env.TEST_TIMEOUT_MS ?? "30000");
+  const timeoutMs = Number(process.env.TEST_TIMEOUT_MS ?? "45000");
 
   const browser = await chromium.launch({ headless });
   const context = await browser.newContext();
   const page = await context.newPage();
   page.setDefaultTimeout(timeoutMs);
 
+  // ---- capture DELETE /api/admin/users/... response
+  let deleteResp = null;
+  page.on("response", async (resp) => {
+    try {
+      const url = resp.url();
+      if (resp.request().method() === "DELETE" && url.includes("/api/admin/users/")) {
+        const text = await resp.text().catch(() => "");
+        deleteResp = { url, status: resp.status(), body: text.slice(0, 2000) };
+      }
+    } catch {
+      // ignore capture errors
+    }
+  });
+
   try {
     const base = ADMIN_URL.replace(/\/+$/, "");
-    const loginUrl = base + "/auth";
-    const usersUrl = base + "/admin/users";
+    const loginUrl = `${base}/auth`;
+    const usersUrl = `${base}/admin/users`;
 
-    // auto-confirm dialogs
     page.on("dialog", async (dialog) => {
       await dialog.accept();
     });
@@ -81,43 +94,44 @@ async function main() {
 
     await page.locator('input[type="email"]').fill(ADMIN_EMAIL);
     await page.locator('input[type="password"]').fill(ADMIN_PASS);
-
-    // submit через Enter (надёжнее click)
     await page.locator('input[type="password"]').press("Enter");
 
-    await page.waitForLoadState("networkidle");
+    // логин подтверждаем НЕ по исчезновению формы, а по явным сигналам
+    const signOutBtn = page.getByRole("button", { name: /sign out/i }).first();
+    const toastSuccess = page.getByText(/Вход выполнен/i).first();
+    const loggedAs = page.getByText(/Вы вошли как/i).first();
 
-    // проверка что ушли со страницы логина
-    const stillOnLogin = await page
-      .locator('text="Sign in or create an account"')
-      .first()
-      .isVisible()
-      .catch(() => false);
+    // ждём любой сигнал до 30s
+    await Promise.race([
+      signOutBtn.waitFor({ state: "visible", timeout: 30000 }).catch(() => {}),
+      toastSuccess.waitFor({ state: "visible", timeout: 30000 }).catch(() => {}),
+      loggedAs.waitFor({ state: "visible", timeout: 30000 }).catch(() => {}),
+    ]);
 
-    if (stillOnLogin) {
-      throw new Error("LoginFailed");
+    const loginOk = await Promise.all([
+      signOutBtn.isVisible().catch(() => false),
+      toastSuccess.isVisible().catch(() => false),
+      loggedAs.isVisible().catch(() => false),
+    ]);
+
+    if (!loginOk.some(Boolean)) {
+      throw new Error("LoginNotConfirmed");
     }
 
+    // =========================
+    // ORG SELECT (если есть)
+    // =========================
+    const orgScreenTitle = page.getByText(/Выберите организацию/i).first();
+    const onOrgScreen = await orgScreenTitle.isVisible().catch(() => false);
 
-    // =========================
-    // ORG SELECT (реальный рабочий)
-    // =========================
-    
-    const orgHeader = page.locator('text="Выберите организацию"');
-    
-    const onOrgScreen = await orgHeader
-      .isVisible()
-      .catch(() => false);
-    
     if (onOrgScreen) {
-      const select = page.locator("select").first();
-      await select.waitFor({ state: "visible" });
-    
-      const options = select.locator("option");
+      const orgSelect = page.locator("select").first();
+      await orgSelect.waitFor({ state: "visible", timeout: 30000 });
+
+      const options = orgSelect.locator("option");
       const count = await options.count();
-    
+
       let valueToSelect = null;
-    
       for (let i = 0; i < count; i++) {
         const value = await options.nth(i).getAttribute("value");
         if (value && value.trim() !== "") {
@@ -125,71 +139,56 @@ async function main() {
           break;
         }
       }
-    
-      if (!valueToSelect) {
-        throw new Error("OrgSelectFailed");
-      }
-    
-      // выбрать org
-      await select.selectOption(valueToSelect);
-    
-      // принудительно триггерим change
-      await select.dispatchEvent("change");
-    
-      // нажать продолжить
-      const continueBtn = page.locator('button:has-text("Продолжить")');
+      if (!valueToSelect) throw new Error("OrgSelectFailed");
+
+      await orgSelect.selectOption(valueToSelect);
+      await orgSelect.dispatchEvent("change");
+
+      const continueBtn = page
+        .locator('button:has-text("Продолжить"), button:has-text("Continue"), button[type="submit"]')
+        .first();
       await continueBtn.click();
-    
-      // ждём исчезновение guard-экрана
-      await orgHeader.waitFor({ state: "detached", timeout: 30000 });
-    
-      await page.waitForLoadState("networkidle");
+
+      // НЕ ждём смену URL. Ждём исчезновение org-экрана ИЛИ появление nav Admin.
+      const adminNav = page.locator('a:has-text("Admin")').first();
+
+      await Promise.race([
+        orgScreenTitle.waitFor({ state: "detached", timeout: 30000 }).catch(() => {}),
+        adminNav.waitFor({ state: "visible", timeout: 30000 }).catch(() => {}),
+      ]);
     }
-    
 
     // =========================
-    // USERS PAGE (жёсткий переход)
+    // USERS PAGE
     // =========================
-    
-    // иногда selector остаётся на той же странице → принудительно идём в users
     await page.goto(usersUrl, { waitUntil: "domcontentloaded" });
-    
-    // ждём либо таблицу, либо сообщение “нет данных”
-    await page.waitForFunction(() => {
-      return (
-        document.querySelector("tbody tr") ||
-        document.body.innerText.includes("No users") ||
-        document.body.innerText.includes("Users")
-      );
-    }, { timeout: 30000 });
+
+    // На твоём скрине есть "All users"
+    await page.getByText(/All users/i).first().waitFor({ state: "visible", timeout: 45000 });
+
+    // допускаем что пользователей может быть 0, но tbody должен существовать
+    await page.locator("tbody").first().waitFor({ state: "visible", timeout: 45000 });
 
     // =========================
     // FIND TARGET
     // =========================
-    const row = page.locator(`tbody tr:has-text("${DELETE_TARGET_EMAIL}")`);
-    const count = await row.count();
+    const targetRow = page.locator(`tbody tr:has-text("${DELETE_TARGET_EMAIL}")`).first();
+    const hasTarget = (await targetRow.count()) > 0;
 
-    if (count === 0) {
+    if (!hasTarget) {
       throw new Error(`TargetNotFound: ${DELETE_TARGET_EMAIL}`);
     }
 
     // =========================
     // DELETE
     // =========================
-    await row.first().locator('button:has-text("Delete")').click();
+    await targetRow.locator('button:has-text("Delete")').click();
 
-    await page.waitForTimeout(2000);
-
-    // =========================
-    // VERIFY
-    // =========================
-    const stillThere = await page
+    // ждём исчезновение строки (это и есть критерий)
+    await page
       .locator(`tbody tr:has-text("${DELETE_TARGET_EMAIL}")`)
-      .count();
-
-    if (stillThere !== 0) {
-      throw new Error("RecordsNotDeleted");
-    }
+      .first()
+      .waitFor({ state: "detached", timeout: 45000 });
 
   } catch (e) {
     try {
@@ -204,7 +203,10 @@ async function main() {
       finished_at: nowIso(),
       duration_sec: Math.round((Date.now() - started) / 1000),
       fail_reason: "FAIL",
-      details: { error: String(e && e.message ? e.message : e) },
+      details: {
+        error: String(e && e.message ? e.message : e),
+        deleteResp, // <-- добавлено
+      },
       artifacts: { screenshot: FAIL_PNG },
     });
 

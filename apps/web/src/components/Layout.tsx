@@ -1,13 +1,17 @@
-import { ChangeEvent, useMemo } from "react";
+import { ChangeEvent, useMemo, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useOrgContext } from "../context/OrgContext";
+import { useOffline } from "../context/OfflineContext";
+import { usePushNotifications } from "../context/PushNotificationsContext";
 import { useNotifications } from "../context/NotificationsContext";
 import { supabase } from "../lib/supabaseClient";
 import AuthPage from "../pages/AuthPage";
 import OrgSelectPage from "../pages/OrgSelectPage";
 
 const baseNavItems = [
+  { label: "Dashboard", to: "/dashboard" },
   { label: "Orders", to: "/orders" },
+  { label: "Tasks", to: "/tasks" },
   { label: "Customers", to: "/customers" },
   { label: "Sites", to: "/sites" },
   { label: "Auth", to: "/auth" },
@@ -17,16 +21,19 @@ const Layout = () => {
   const location = useLocation();
   const hideNav = location.pathname.startsWith("/orders/");
   const { session, orgs, activeOrgId, setActiveOrgId, loading, authError } = useOrgContext();
+  const { online } = useOffline();
   const { notify } = useNotifications();
 
+  const { permission, requestPermission } = usePushNotifications();
   const activeMembership = useMemo(
     () => orgs.find((org) => org.org_id === activeOrgId),
     [orgs, activeOrgId]
   );
 
+  const [navOpen, setNavOpen] = useState(false);
   const navItems = useMemo(() => {
     if (activeMembership?.role === "admin") {
-      return [...baseNavItems, { label: "Admin", to: "/admin/users" }];
+      return [...baseNavItems, { label: "Admin", to: "/admin" }];
     }
     return baseNavItems;
   }, [activeMembership?.role]);
@@ -160,6 +167,11 @@ const Layout = () => {
       <header className="app-header">
         {renderHeaderInfo()}
         <div className="row">
+          {permission === "default" && (
+            <button className="btn secondary" type="button" onClick={() => void requestPermission()}>
+              Enable notifications
+            </button>
+          )}
           <NavLink className="btn" to="/onboarding">
             Create Org
           </NavLink>
@@ -169,16 +181,38 @@ const Layout = () => {
         </div>
       </header>
       <main className="app-main">
+        {!online && (
+          <div className="offline-banner" role="status">
+            <span>Нет соединения.</span> Данные из кеша. Изменения синхронизируются при восстановлении сети.
+          </div>
+        )}
         <Outlet />
       </main>
       {!hideNav && (
-        <nav className="bottom-nav">
-          {navItems.map((item) => (
-            <NavLink key={item.to} className="nav-link" to={item.to}>
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
+        <>
+          <button
+            type="button"
+            className="nav-toggle"
+            aria-label="Toggle menu"
+            onClick={() => setNavOpen((o) => !o)}
+          >
+            <span className="nav-toggle-bar" />
+            <span className="nav-toggle-bar" />
+            <span className="nav-toggle-bar" />
+          </button>
+          <nav className={`bottom-nav ${navOpen ? "nav-open" : ""}`}>
+            {navItems.map((item) => (
+              <NavLink
+                key={item.to}
+                className="nav-link"
+                to={item.to}
+                onClick={() => setNavOpen(false)}
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
+        </>
       )}
     </div>
   );

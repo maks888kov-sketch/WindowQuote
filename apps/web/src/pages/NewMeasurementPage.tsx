@@ -1,7 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useOrgContext } from "../context/OrgContext";
 import { supabase } from "../lib/supabaseClient";
+import {
+  cacheMeasurementItems,
+  getCachedMeasurementItems,
+  isOnline,
+} from "../lib/offlineCache";
 
 type MeasurementMeta = {
   id: string;
@@ -56,7 +61,15 @@ const NewMeasurementPage = () => {
   }, [measurementMeta, latestVersion]);
   const canEdit = useMemo(() => Boolean(canAddItem && !isReadOnly), [canAddItem, isReadOnly]);
 
-  const loadItems = async (activeMeasurementId: string) => {
+  const loadItems = useCallback(async (activeMeasurementId: string) => {
+    if (!isOnline()) {
+      const cached = await getCachedMeasurementItems(activeMeasurementId);
+      setItems((cached ?? []) as MeasurementItem[]);
+      setAttachments({});
+      setError(null);
+      return;
+    }
+
     const { data, error: fetchError } = await supabase
       .from("measurement_items")
       .select("id, item_type, width, height, qty, notes, params_json")
@@ -64,12 +77,19 @@ const NewMeasurementPage = () => {
       .order("created_at", { ascending: false });
 
     if (fetchError) {
+      const cached = await getCachedMeasurementItems(activeMeasurementId);
+      setItems((cached ?? []) as MeasurementItem[]);
       setError(fetchError.message);
-      setItems([]);
+      setAttachments({});
       return;
     }
 
-    setItems((data ?? []) as MeasurementItem[]);
+    const list = (data ?? []) as MeasurementItem[];
+    setItems(list);
+    await cacheMeasurementItems(
+      activeMeasurementId,
+      list.map((i) => ({ ...i, measurement_id: activeMeasurementId }))
+    );
 
     if (!data || data.length === 0) {
       setAttachments({});
@@ -89,12 +109,12 @@ const NewMeasurementPage = () => {
 
     const grouped: Record<string, ItemAttachment[]> = {};
     (attachmentData ?? []).forEach((attachment) => {
-      const list = grouped[attachment.measurement_item_id] ?? [];
-      list.push(attachment as unknown as ItemAttachment);
-      grouped[attachment.measurement_item_id] = list;
+      const arr = grouped[attachment.measurement_item_id] ?? [];
+      arr.push(attachment as unknown as ItemAttachment);
+      grouped[attachment.measurement_item_id] = arr;
     });
     setAttachments(grouped);
-  };
+  }, []);
 
   const loadMeasurementMeta = async (activeMeasurementId: string) => {
     if (!id) return;
@@ -251,7 +271,14 @@ const NewMeasurementPage = () => {
 
     void loadItems(measurementId);
     void loadMeasurementMeta(measurementId);
-  }, [measurementId, id]);
+  }, [measurementId, id, loadItems]);
+
+  useEffect(() => {
+    if (!measurementId || !isOnline()) return;
+    const onOnline = () => void loadItems(measurementId);
+    window.addEventListener("online", onOnline);
+    return () => window.removeEventListener("online", onOnline);
+  }, [measurementId, loadItems]);
 
   return (
     <section className="stack">

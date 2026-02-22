@@ -1,4 +1,4 @@
-export const ALLOWED_ROLES = ["admin", "worker", "manager", "viewer"] as const;
+export const ALLOWED_ROLES = ["admin", "manager", "measurer", "worker"] as const;
 
 export type AllowedRole = (typeof ALLOWED_ROLES)[number];
 
