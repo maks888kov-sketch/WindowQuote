@@ -32,9 +32,9 @@ const CustomersPage = () => {
     if (search.trim()) {
       q = q.ilike("name", `%${search.trim()}%`);
     }
-    const { data, err } = await q;
-    if (err) {
-      setError(err.message);
+    const { data, error: fetchError } = await q;
+    if (fetchError) {
+      setError(fetchError.message);
       setCustomers([]);
     } else {
       setCustomers(data ?? []);

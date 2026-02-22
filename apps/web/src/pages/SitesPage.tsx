@@ -7,7 +7,7 @@ type Site = {
   name: string;
   address_line1: string | null;
   customer_id: string;
-  customers?: { name: string } | null;
+  customers?: { name: string }[] | null;
 };
 
 type CustomerOption = { id: string; name: string };
@@ -26,16 +26,16 @@ const SitesPage = () => {
     if (!activeOrgId) return;
     setLoading(true);
     setError(null);
-    const { data, err } = await supabase
+    const { data, error: fetchError } = await supabase
       .from("sites")
       .select("id, name, address_line1, customer_id, customers(name)")
       .eq("org_id", activeOrgId)
       .order("name");
-    if (err) {
-      setError(err.message);
+    if (fetchError) {
+      setError(fetchError.message);
       setSites([]);
     } else {
-      setSites(data ?? []);
+      setSites((data ?? []) as Site[]);
     }
     setLoading(false);
   }, [activeOrgId]);
@@ -144,7 +144,7 @@ const SitesPage = () => {
                 <div>
                   <strong>{s.name}</strong>
                   <p style={{ margin: 0, fontSize: "0.9rem", color: "#64748b" }}>
-                    {s.customers?.name ?? "—"} {s.address_line1 ? `· ${s.address_line1}` : ""}
+                    {Array.isArray(s.customers) ? s.customers[0]?.name : (s.customers as { name?: string } | null)?.name ?? "—"} {s.address_line1 ? `· ${s.address_line1}` : ""}
                   </p>
                 </div>
               </div>
