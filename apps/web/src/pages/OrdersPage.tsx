@@ -147,26 +147,49 @@ const OrdersPage = () => {
     return unregister;
   }, [registerRetry, activeOrgId, statusFilter]);
 
+  const byStatus = orders.reduce((acc, o) => {
+    acc[o.status] = (acc[o.status] ?? 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
   return (
     <section className="stack">
       <div className="page-header">
         <div>
-          <h1>Мои заказы</h1>
-          <p className="app-subtitle">Замеры и сметы окон и дверей</p>
+          <h1>Заказы</h1>
+          <p className="app-subtitle">Управление заказами и документами</p>
         </div>
-      </div>
-
-      <div className="row" style={{ gap: "0.75rem", flexWrap: "wrap" }}>
-        <Link className="btn btn-cta" to="/orders/new-order">
-          ➕ Добавить замер
-        </Link>
-        <button
+        <div className="row" style={{ gap: "0.5rem" }}>
+          <Link className="btn btn-cta" to="/orders/new-order">
+            ➕ Добавить замер
+          </Link>
+          <button
           className="btn secondary"
           type="button"
           onClick={() => setShowCreate(!showCreate)}
         >
-          {showCreate ? "Скрыть" : "Новый заказ"}
-        </button>
+            {showCreate ? "Скрыть" : "+ Новый заказ"}
+          </button>
+        </div>
+      </div>
+
+      <div className="stats-cards-row">
+        <div className="stats-card">
+          <span className="stats-label">Всего заказов</span>
+          <span className="stats-value">{orders.length}</span>
+        </div>
+        <div className="stats-card">
+          <span className="stats-label">Черновики</span>
+          <span className="stats-value">{byStatus.draft ?? 0}</span>
+        </div>
+        <div className="stats-card">
+          <span className="stats-label">В работе</span>
+          <span className="stats-value">{(byStatus.scheduled ?? 0) + (byStatus.approved ?? 0)}</span>
+        </div>
+        <div className="stats-card">
+          <span className="stats-label">Выполнено</span>
+          <span className="stats-value stats-value-green">{byStatus.completed ?? 0}</span>
+        </div>
       </div>
 
       {showCreate && (

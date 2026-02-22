@@ -73,11 +73,18 @@ const CustomersPage = () => {
       <div className="page-header">
         <div>
           <h1>Клиенты</h1>
-          <p>Учёт клиентов и поиск по имени.</p>
+          <p className="app-subtitle">База клиентов с историей заказов</p>
         </div>
         <button className="btn" type="button" onClick={() => setShowForm(!showForm)}>
-          {showForm ? "Отмена" : "Новый клиент"}
+          {showForm ? "Отмена" : "+ Добавить клиента"}
         </button>
+      </div>
+
+      <div className="stats-cards-row">
+        <div className="stats-card">
+          <span className="stats-label">Всего клиентов</span>
+          <span className="stats-value">{customers.length}</span>
+        </div>
       </div>
 
       {showForm && (
@@ -127,9 +134,10 @@ const CustomersPage = () => {
 
       <div className="card">
         <label className="field">
-          Поиск
           <input
-            placeholder="Поиск по клиентам"
+            className="search-input"
+            type="search"
+            placeholder="Поиск по имени, телефону или адресу..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />

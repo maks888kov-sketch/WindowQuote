@@ -9,11 +9,13 @@ import AuthPage from "../pages/AuthPage";
 import OrgSelectPage from "../pages/OrgSelectPage";
 
 const baseNavItems = [
+  { label: "Главная", to: "/", icon: "🏠" },
+  { label: "Калькулятор", to: "/calculator", icon: "🧮" },
   { label: "Заказы", to: "/orders", icon: "📋" },
-  { label: "Задачи", to: "/tasks", icon: "✓" },
-  { label: "Панель", to: "/dashboard", icon: "📊" },
-  { label: "Клиенты", to: "/customers", icon: "👤" },
-  { label: "Объекты", to: "/sites", icon: "📍" },
+  { label: "Клиенты", to: "/customers", icon: "👥" },
+  { label: "Профили", to: "/profiles", icon: "📦" },
+  { label: "Аналитика", to: "/dashboard", icon: "📊" },
+  { label: "Настройки", to: "/admin", icon: "⚙" },
 ];
 
 const Layout = () => {
@@ -30,12 +32,7 @@ const Layout = () => {
   );
 
   const [navOpen, setNavOpen] = useState(false);
-  const navItems = useMemo(() => {
-    if (activeMembership?.role === "admin") {
-      return [...baseNavItems, { label: "Админ", to: "/admin", icon: "⚙" }];
-    }
-    return baseNavItems;
-  }, [activeMembership?.role]);
+  const navItems = useMemo(() => baseNavItems, []);
 
   const activeOrgName = activeMembership?.org_name ?? "Не выбрана";
   const currentUserEmail = session?.user?.email ?? "—";
@@ -62,7 +59,7 @@ const Layout = () => {
   const renderHeaderInfo = () => (
     <div>
       <p className="app-title">WindowQuote</p>
-      <p className="app-subtitle">Замеры и сметы окон и дверей</p>
+      <p className="app-subtitle">Профессиональная система для расчёта окон и дверей</p>
       <p className="app-subtitle">Вы вошли как: {currentUserEmail}</p>
       {orgs.length > 1 ? (
         <label className="field">
@@ -87,7 +84,7 @@ const Layout = () => {
         <header className="app-header">
           <div>
             <p className="app-title">WindowQuote</p>
-            <p className="app-subtitle">Замеры и сметы окон и дверей</p>
+            <p className="app-subtitle">Профессиональная система для расчёта окон и дверей</p>
           </div>
         </header>
         <main className="app-main">
@@ -103,7 +100,7 @@ const Layout = () => {
         <header className="app-header">
           <div>
             <p className="app-title">WindowQuote</p>
-            <p className="app-subtitle">Замеры и сметы окон и дверей</p>
+            <p className="app-subtitle">Профессиональная система для расчёта окон и дверей</p>
           </div>
         </header>
         <main className="app-main">
@@ -119,7 +116,7 @@ const Layout = () => {
         <header className="app-header">
           <div>
             <p className="app-title">WindowQuote</p>
-            <p className="app-subtitle">Замеры и сметы окон и дверей</p>
+            <p className="app-subtitle">Профессиональная система для расчёта окон и дверей</p>
           </div>
         </header>
         <main className="app-main">
