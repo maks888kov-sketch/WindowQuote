@@ -31,7 +31,7 @@ const AdminAuditPage = () => {
       const { data } = await supabase.auth.getSession();
       const token = data.session?.access_token;
       if (!token) {
-        setMessage("No active session.");
+        setMessage("Нет активной сессии.");
         return;
       }
 
@@ -41,12 +41,12 @@ const AdminAuditPage = () => {
       const payload = await res.json();
 
       if (!res.ok || !payload.ok) {
-        throw new Error(payload.error ?? "Failed to load audit log.");
+        throw new Error(payload.error ?? "Не удалось загрузить журнал.");
       }
 
       setEvents(Array.isArray(payload.events) ? payload.events : []);
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Failed to load audit log.");
+      setMessage(err instanceof Error ? err.message : "Не удалось загрузить журнал.");
       setEvents([]);
     } finally {
       setLoading(false);
@@ -63,37 +63,37 @@ const AdminAuditPage = () => {
   };
 
   if (!activeOrgId) {
-    return <p className="notice">Select an organization first.</p>;
+    return <p className="notice">Сначала выберите организацию.</p>;
   }
 
   if (!isAdmin) {
-    return <p className="notice">Access denied. Only admin role can access this section.</p>;
+    return <p className="notice">Доступ только для администратора.</p>;
   }
 
   return (
     <section className="stack">
       <article className="card">
         <div className="row">
-          <h1>Admin: Audit log</h1>
+          <h1>Журнал аудита</h1>
           <button className="btn secondary" type="button" onClick={() => void loadEvents()} disabled={loading}>
-            Refresh
+            Обновить
           </button>
         </div>
-        <p>Authentication and organization events for this org.</p>
+        <p>События входа и организации.</p>
         {loading ? (
-          <p>Loading audit log...</p>
+          <p>Загрузка журнала…</p>
         ) : message ? (
           <p className="notice">{message}</p>
         ) : events.length === 0 ? (
-          <p className="empty-state">No audit events found.</p>
+          <p className="empty-state">Событий пока нет.</p>
         ) : (
           <div className="table-wrap">
             <table className="table">
               <thead>
                 <tr>
-                  <th>Time</th>
-                  <th>User</th>
-                  <th>Event</th>
+                  <th>Время</th>
+                  <th>Пользователь</th>
+                  <th>Событие</th>
                 </tr>
               </thead>
               <tbody>

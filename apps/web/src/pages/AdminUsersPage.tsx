@@ -184,7 +184,7 @@ const AdminUsersPage = () => {
       notify({ type: "success", message: `Пользователь ${inviteEmail} приглашён в организацию.` });
       await loadUsers();
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to invite user.";
+      const errorMessage = error instanceof Error ? error.message : "Не удалось пригласить пользователя.";
       setMessage(errorMessage);
       notify({ type: "error", message: `Ошибка приглашения: ${errorMessage}` });
     }

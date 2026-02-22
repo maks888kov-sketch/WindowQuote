@@ -53,6 +53,9 @@ const NewMeasurementPage = () => {
   const [qty, setQty] = useState("1");
   const [notes, setNotes] = useState("");
   const [paramsJson, setParamsJson] = useState<string>("{}");
+  const [sashes, setSashes] = useState("");
+  const [profileId, setProfileId] = useState("");
+  const [profiles, setProfiles] = useState<{ id: string; brand: string; profile_type: string }[]>([]);
 
   const canAddItem = useMemo(() => Boolean(activeOrgId && measurementId), [activeOrgId, measurementId]);
   const isReadOnly = useMemo(() => {
@@ -178,9 +181,11 @@ const NewMeasurementPage = () => {
     try {
       parsedParams = paramsJson ? (JSON.parse(paramsJson) as Record<string, unknown>) : {};
     } catch (parseError) {
-      setError("Params JSON is invalid.");
+      setError("Параметры (JSON) заданы неверно.");
       return;
     }
+    if (sashes) parsedParams.sashes = Number(sashes);
+    if (profileId) parsedParams.profile_id = profileId;
 
     const widthValue = width ? Number(width) : null;
     const heightValue = height ? Number(height) : null;
@@ -208,6 +213,8 @@ const NewMeasurementPage = () => {
     setQty("1");
     setNotes("");
     setParamsJson("{}");
+    setSashes("");
+    setProfileId("");
     await loadItems(measurementId);
   };
 
@@ -259,6 +266,16 @@ const NewMeasurementPage = () => {
     await loadItems(measurementId);
     setLoading(false);
   };
+
+  useEffect(() => {
+    if (!activeOrgId) return;
+    supabase
+      .from("profile_catalog")
+      .select("id, brand, profile_type")
+      .eq("org_id", activeOrgId)
+      .order("brand")
+      .then(({ data }) => setProfiles(data ?? []));
+  }, [activeOrgId]);
 
   useEffect(() => {
     if (!measurementId) {
@@ -352,6 +369,30 @@ const NewMeasurementPage = () => {
                   disabled={isReadOnly}
                 />
               </label>
+              <label className="field">
+                Створки
+                <input
+                  type="number"
+                  min="1"
+                  placeholder="1"
+                  value={sashes}
+                  onChange={(e) => setSashes(e.target.value)}
+                  disabled={isReadOnly}
+                />
+              </label>
+              <label className="field">
+                Профиль
+                <select
+                  value={profileId}
+                  onChange={(e) => setProfileId(e.target.value)}
+                  disabled={isReadOnly}
+                >
+                  <option value="">— не выбрано</option>
+                  {profiles.map((p) => (
+                    <option key={p.id} value={p.id}>{p.brand} · {p.profile_type}</option>
+                  ))}
+                </select>
+              </label>
             </div>
             <label className="field">
               Заметки
@@ -386,6 +427,9 @@ const NewMeasurementPage = () => {
                       <strong>{item.item_type}</strong>
                       <p>
                         {item.width ?? 0} × {item.height ?? 0} · кол-во {item.qty}
+                        {(item.params_json?.sashes as number) != null && (item.params_json?.sashes as number) > 0 && (
+                          <> · створок: {String(item.params_json.sashes)}</>
+                        )}
                       </p>
                       {item.notes && <small>{item.notes}</small>}
                     </div>

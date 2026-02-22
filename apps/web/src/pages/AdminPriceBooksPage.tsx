@@ -39,7 +39,7 @@ const AdminPriceBooksPage = () => {
       if (error) throw error;
       setBooks(data ?? []);
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Failed to load price books.");
+      setMessage(err instanceof Error ? err.message : "Не удалось загрузить прайс-листы.");
       setBooks([]);
     } finally {
       setLoading(false);
@@ -67,61 +67,61 @@ const AdminPriceBooksPage = () => {
       setShowCreate(false);
       await loadPriceBooks();
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Create failed.");
+      setMessage(err instanceof Error ? err.message : "Ошибка создания.");
     }
   };
 
   if (!activeOrgId) {
-    return <p className="notice">Select an organization first.</p>;
+    return <p className="notice">Сначала выберите организацию.</p>;
   }
 
   if (!isAdmin) {
-    return <p className="notice">Access denied. Admin or manager role required.</p>;
+    return <p className="notice">Доступ только для администратора или менеджера.</p>;
   }
 
   return (
     <section className="stack">
       <article className="card stack">
         <div className="row" style={{ justifyContent: "space-between", flexWrap: "wrap" }}>
-          <h1>Admin: Price books</h1>
+          <h1>Прайс-листы</h1>
           <div className="row" style={{ gap: "0.5rem" }}>
             <button className="btn secondary" type="button" onClick={() => void loadPriceBooks()} disabled={loading}>
-              Refresh
+              Обновить
             </button>
             <button className="btn" type="button" onClick={() => setShowCreate(!showCreate)}>
-              {showCreate ? "Cancel" : "+ New price book"}
+              {showCreate ? "Отмена" : "+ Новый прайс-лист"}
             </button>
           </div>
         </div>
-        <p>Manage pricelists (brands). Create books, add price items and pricing rules.</p>
+        <p>Управление прайс-листами (бренды). Создавайте книги, добавляйте позиции и правила расчёта.</p>
         {showCreate && (
           <form className="row form-wrap" onSubmit={handleCreate}>
             <label className="field">
-              Name
-              <input type="text" value={newName} onChange={(e) => setNewName(e.target.value)} required placeholder="e.g. Standard" />
+              Название
+              <input type="text" value={newName} onChange={(e) => setNewName(e.target.value)} required placeholder="Например: Стандарт" />
             </label>
             <label className="field">
-              Description
-              <input type="text" value={newDesc} onChange={(e) => setNewDesc(e.target.value)} placeholder="Optional" />
+              Описание
+              <input type="text" value={newDesc} onChange={(e) => setNewDesc(e.target.value)} placeholder="Необязательно" />
             </label>
-            <button className="btn" type="submit">Create</button>
+            <button className="btn" type="submit">Создать</button>
           </form>
         )}
         {message && <p className="notice">{message}</p>}
         {loading ? (
-          <p>Loading...</p>
+          <p>Загрузка…</p>
         ) : books.length === 0 ? (
-          <p className="empty-state">No price books yet. Create one above.</p>
+          <p className="empty-state">Пока нет прайс-листов. Создайте первый выше.</p>
         ) : (
           <div className="table-wrap">
             <table className="table">
               <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>Description</th>
-                  <th>Active</th>
-                  <th>Created</th>
-                  <th>Actions</th>
+                  <th>Название</th>
+                  <th>Описание</th>
+                  <th>Активен</th>
+                  <th>Создан</th>
+                  <th>Действия</th>
                 </tr>
               </thead>
               <tbody>
@@ -129,11 +129,11 @@ const AdminPriceBooksPage = () => {
                   <tr key={b.id}>
                     <td><Link to={`/admin/price-books/${b.id}`}>{b.name}</Link></td>
                     <td>{b.description ?? "—"}</td>
-                    <td>{b.is_active ? "Yes" : "No"}</td>
-                    <td>{new Date(b.created_at).toLocaleDateString()}</td>
+                    <td>{b.is_active ? "Да" : "Нет"}</td>
+                    <td>{new Date(b.created_at).toLocaleDateString("ru-RU")}</td>
                     <td>
                       <Link className="btn secondary" to={`/admin/price-books/${b.id}`}>
-                        Edit items & rules
+                        Позиции и правила
                       </Link>
                     </td>
                   </tr>

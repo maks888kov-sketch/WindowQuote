@@ -224,7 +224,7 @@ const OrderDetailPage = () => {
     try {
       const { data } = await supabase.auth.getSession();
       const token = data.session?.access_token;
-      if (!token) throw new Error("Not signed in.");
+      if (!token) throw new Error("Вы не авторизованы.");
       const res = await fetch("/api/quote-calculate", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -236,11 +236,11 @@ const OrderDetailPage = () => {
         }),
       });
       const payload = await res.json();
-      if (!res.ok || !payload.ok) throw new Error(payload.error ?? "Calculate failed.");
+      if (!res.ok || !payload.ok) throw new Error(payload.error ?? "Ошибка расчёта сметы.");
       await loadQuotes();
       await loadOrder();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Calculate failed.");
+      setError(err instanceof Error ? err.message : "Ошибка расчёта сметы.");
     } finally {
       setCalculating(false);
     }
@@ -252,35 +252,35 @@ const OrderDetailPage = () => {
     try {
       const { data } = await supabase.auth.getSession();
       const token = data.session?.access_token;
-      if (!token) throw new Error("Not signed in.");
+      if (!token) throw new Error("Вы не авторизованы.");
       const res = await fetch("/api/quote-pdf", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ quoteId }),
       });
       const payload = await res.json();
-      if (!res.ok || !payload.ok) throw new Error(payload.error ?? "PDF failed.");
+      if (!res.ok || !payload.ok) throw new Error(payload.error ?? "Ошибка формирования PDF.");
       if (payload.pdf_url) {
         window.open(payload.pdf_url, "_blank");
       } else if (payload.fallback && payload.quote) {
         const w = window.open("", "_blank");
         if (w) {
           w.document.write(`
-            <html><head><title>Quote ${quoteId}</title></head><body>
-            <h1>Quote</h1>
-            <table border="1"><tr><th>Description</th><th>Qty</th><th>Unit</th><th>Amount</th></tr>
+            <html><head><title>Смета ${quoteId}</title></head><body>
+            <h1>Смета</h1>
+            <table border="1"><tr><th>Наименование</th><th>Кол-во</th><th>Цена</th><th>Сумма</th></tr>
             ${(payload.quote.lines ?? []).map((l: { description: string; quantity: number; unit_price: number; amount: number }) =>
-              `<tr><td>${l.description}</td><td>${l.quantity}</td><td>$${l.unit_price.toFixed(2)}</td><td>$${l.amount.toFixed(2)}</td></tr>`
+              `<tr><td>${l.description}</td><td>${l.quantity}</td><td>${l.unit_price.toFixed(2)} ₽</td><td>${l.amount.toFixed(2)} ₽</td></tr>`
             ).join("")}
             </table>
-            <p><strong>Total: $${payload.quote.total_amount?.toFixed(2) ?? "0.00"}</strong></p>
+            <p><strong>Итого: ${payload.quote.total_amount?.toFixed(2) ?? "0.00"} ₽</strong></p>
             <p><button type="button" onclick="window.print()">Печать</button></p>
             </body></html>`);
           w.document.close();
         }
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "PDF failed.");
+      setError(err instanceof Error ? err.message : "Ошибка формирования PDF.");
     } finally {
       setGeneratingPdf(null);
     }
@@ -476,7 +476,7 @@ const OrderDetailPage = () => {
 
           <div className="card">
             <h2>Резерв со склада</h2>
-            <OrderReserveSection orderId={id!} orgId={activeOrgId} onDone={reloadAll} />
+            <OrderReserveSection orderId={id!} orgId={activeOrgId} onDone={reloadAll} onError={setError} />
           </div>
 
           <div className="card">
@@ -716,17 +716,18 @@ function OrderReserveSection({ orderId, orgId, onDone }: { orderId: string; orgI
     try {
       const { data } = await supabase.auth.getSession();
       const token = data.session?.access_token;
-      if (!token) throw new Error("Not signed in.");
+      if (!token) throw new Error("Вы не авторизованы.");
       const res = await fetch("/api/inventory-reserve", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ action: "reserve", orderId, orgId, inventoryItemId: itemId, quantity: parseFloat(qty) || 1 }),
       });
       const payload = await res.json();
-      if (!res.ok || !payload.ok) throw new Error(payload.error ?? "Reserve failed.");
+      if (!res.ok || !payload.ok) throw new Error(payload.error ?? "Ошибка резервирования.");
       setQty("1");
       onDone();
     } catch (e) {
+      onError?.(e instanceof Error ? e.message : "Ошибка резервирования.");
       console.error(e);
     } finally {
       setLoading(false);
