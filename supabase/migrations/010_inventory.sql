@@ -35,10 +35,16 @@ create trigger set_inventory_items_updated_at before update on inventory_items f
 alter table inventory_items enable row level security;
 alter table inventory_movements enable row level security;
 
+drop policy if exists "inventory_items_select" on inventory_items;
+drop policy if exists "inventory_items_insert" on inventory_items;
+drop policy if exists "inventory_items_update" on inventory_items;
+drop policy if exists "inventory_items_delete" on inventory_items;
 create policy "inventory_items_select" on inventory_items for select using (is_member_of_org(org_id));
 create policy "inventory_items_insert" on inventory_items for insert with check (has_org_role(org_id, array['admin', 'manager']::role[]));
 create policy "inventory_items_update" on inventory_items for update using (has_org_role(org_id, array['admin', 'manager']::role[])) with check (has_org_role(org_id, array['admin', 'manager']::role[]));
 create policy "inventory_items_delete" on inventory_items for delete using (has_org_role(org_id, array['admin']::role[]));
 
+drop policy if exists "inventory_movements_select" on inventory_movements;
+drop policy if exists "inventory_movements_insert" on inventory_movements;
 create policy "inventory_movements_select" on inventory_movements for select using (is_member_of_org(org_id));
 create policy "inventory_movements_insert" on inventory_movements for insert with check (has_org_role(org_id, array['admin', 'manager']::role[]));

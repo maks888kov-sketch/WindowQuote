@@ -136,34 +136,60 @@ alter table quotes enable row level security;
 alter table quote_lines enable row level security;
 alter table tasks enable row level security;
 
+drop policy if exists "price_books_select" on price_books;
+drop policy if exists "price_books_insert" on price_books;
+drop policy if exists "price_books_update" on price_books;
+drop policy if exists "price_books_delete" on price_books;
 create policy "price_books_select" on price_books for select using (is_member_of_org(org_id));
 create policy "price_books_insert" on price_books for insert with check (has_org_role(org_id, array['admin', 'manager']::role[]));
 create policy "price_books_update" on price_books for update using (has_org_role(org_id, array['admin', 'manager']::role[])) with check (has_org_role(org_id, array['admin', 'manager']::role[]));
 create policy "price_books_delete" on price_books for delete using (has_org_role(org_id, array['admin']::role[]));
 
+drop policy if exists "price_items_select" on price_items;
+drop policy if exists "price_items_insert" on price_items;
+drop policy if exists "price_items_update" on price_items;
+drop policy if exists "price_items_delete" on price_items;
 create policy "price_items_select" on price_items for select using (is_member_of_org(org_id));
 create policy "price_items_insert" on price_items for insert with check (has_org_role(org_id, array['admin', 'manager']::role[]));
 create policy "price_items_update" on price_items for update using (has_org_role(org_id, array['admin', 'manager']::role[])) with check (has_org_role(org_id, array['admin', 'manager']::role[]));
 create policy "price_items_delete" on price_items for delete using (has_org_role(org_id, array['admin']::role[]));
 
+drop policy if exists "pricing_rules_select" on pricing_rules;
+drop policy if exists "pricing_rules_insert" on pricing_rules;
+drop policy if exists "pricing_rules_update" on pricing_rules;
+drop policy if exists "pricing_rules_delete" on pricing_rules;
 create policy "pricing_rules_select" on pricing_rules for select using (is_member_of_org(org_id));
 create policy "pricing_rules_insert" on pricing_rules for insert with check (has_org_role(org_id, array['admin', 'manager']::role[]));
 create policy "pricing_rules_update" on pricing_rules for update using (has_org_role(org_id, array['admin', 'manager']::role[])) with check (has_org_role(org_id, array['admin', 'manager']::role[]));
 create policy "pricing_rules_delete" on pricing_rules for delete using (has_org_role(org_id, array['admin']::role[]));
 
+drop policy if exists "pricing_versions_select" on pricing_versions;
+drop policy if exists "pricing_versions_insert" on pricing_versions;
 create policy "pricing_versions_select" on pricing_versions for select using (is_member_of_org(org_id));
 create policy "pricing_versions_insert" on pricing_versions for insert with check (has_org_role(org_id, array['admin', 'manager']::role[]));
 
+drop policy if exists "quotes_select" on quotes;
+drop policy if exists "quotes_insert" on quotes;
+drop policy if exists "quotes_update" on quotes;
+drop policy if exists "quotes_delete" on quotes;
 create policy "quotes_select" on quotes for select using (is_member_of_org(org_id));
 create policy "quotes_insert" on quotes for insert with check (has_org_role(org_id, array['admin', 'manager', 'measurer']::role[]));
 create policy "quotes_update" on quotes for update using (has_org_role(org_id, array['admin', 'manager', 'measurer']::role[])) with check (has_org_role(org_id, array['admin', 'manager', 'measurer']::role[]));
 create policy "quotes_delete" on quotes for delete using (has_org_role(org_id, array['admin', 'manager']::role[]));
 
+drop policy if exists "quote_lines_select" on quote_lines;
+drop policy if exists "quote_lines_insert" on quote_lines;
+drop policy if exists "quote_lines_update" on quote_lines;
+drop policy if exists "quote_lines_delete" on quote_lines;
 create policy "quote_lines_select" on quote_lines for select using (is_member_of_org(org_id));
 create policy "quote_lines_insert" on quote_lines for insert with check (has_org_role(org_id, array['admin', 'manager', 'measurer']::role[]));
 create policy "quote_lines_update" on quote_lines for update using (has_org_role(org_id, array['admin', 'manager', 'measurer']::role[])) with check (has_org_role(org_id, array['admin', 'manager', 'measurer']::role[]));
 create policy "quote_lines_delete" on quote_lines for delete using (has_org_role(org_id, array['admin', 'manager']::role[]));
 
+drop policy if exists "tasks_select" on tasks;
+drop policy if exists "tasks_insert" on tasks;
+drop policy if exists "tasks_update" on tasks;
+drop policy if exists "tasks_delete" on tasks;
 create policy "tasks_select" on tasks for select using (is_member_of_org(org_id));
 create policy "tasks_insert" on tasks for insert with check (has_org_role(org_id, array['admin', 'manager']::role[]));
 create policy "tasks_update" on tasks for update using (has_org_role(org_id, array['admin', 'manager']::role[])) with check (has_org_role(org_id, array['admin', 'manager']::role[]));
