@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 
 type MeasurementRecord = {
@@ -64,29 +64,34 @@ const MeasurementHistoryPage = () => {
     <section className="stack">
       <div className="page-header">
         <div>
-          <h1>Measurement history</h1>
-          <p>Read-only versions for order {id}.</p>
+          <h1>История замеров</h1>
+          <p>Версии замеров по заказу.</p>
         </div>
+        {id && (
+          <Link className="btn" to={`/orders/${id}/measurements/new`}>
+            Новый замер
+          </Link>
+        )}
       </div>
-      {error && <p className="error">{error}</p>}
+      {error && <p className="notice" style={{ background: "#fee2e2", color: "#991b1b" }}>{error}</p>}
       <div className="card">
         {measurements.length === 0 ? (
           <div className="empty-state">
-            <p>No measurements yet.</p>
+            <p>Пока нет замеров.</p>
           </div>
         ) : (
           <div className="list">
             {measurements.map((measurement) => (
               <div className="list-row" key={measurement.id}>
                 <div>
-                  <strong>Version {measurement.version}</strong>
+                  <strong>Версия {measurement.version}</strong>
                   <p>
-                    {measurement.notes ?? "No notes"} · {itemCounts[measurement.id] ?? 0} items
+                    {measurement.notes ?? "—"} · {itemCounts[measurement.id] ?? 0} позиций
                   </p>
                 </div>
-                <button className="btn secondary" disabled>
-                  Read-only
-                </button>
+                <Link className="btn secondary" to={`/orders/${id}/measurements/new?measurementId=${measurement.id}`}>
+                  Открыть
+                </Link>
               </div>
             ))}
           </div>

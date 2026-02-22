@@ -265,7 +265,7 @@ const OrderDetailPage = () => {
             ).join("")}
             </table>
             <p><strong>Total: $${payload.quote.total_amount?.toFixed(2) ?? "0.00"}</strong></p>
-            <p><button onclick="window.print()">Print</button></p>
+            <p><button type="button" onclick="window.print()">Печать</button></p>
             </body></html>`);
           w.document.close();
         }

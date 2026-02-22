@@ -103,13 +103,21 @@ sudo certbot --nginx -d ваш_домен.ru
 
 ## Обновление
 
+**На ПК (одна команда — в Git и пуш):**
 ```bash
-cd /var/www/WindowQuote
-git pull origin main
-cd apps/web
-npm install
-npm run build
-pm2 restart windowquote
+cd C:\WindowQuote
+npm run deploy
+```
+Или вручную: `git add . && git commit -m "update" && git push origin main`
+
+**На сервере (после push):**
+```bash
+cd /root/WindowQuote && git pull origin main && cd apps/web && npm install && npm run build && pm2 restart windowquote
+```
+Или один раз сохранить скрипт и вызывать его:
+```bash
+chmod +x /root/WindowQuote/scripts/deploy-server.sh
+/root/WindowQuote/scripts/deploy-server.sh
 ```
 
 ## Полезные команды PM2
