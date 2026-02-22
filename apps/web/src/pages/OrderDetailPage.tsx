@@ -695,7 +695,7 @@ function TasksSection({
   );
 }
 
-function OrderReserveSection({ orderId, orgId, onDone }: { orderId: string; orgId: string | null; onDone: () => void }) {
+function OrderReserveSection({ orderId, orgId, onDone, onError }: { orderId: string; orgId: string | null; onDone: () => void; onError?: (msg: string) => void }) {
   const [items, setItems] = useState<{ id: string; name: string; quantity: number; unit: string }[]>([]);
   const [itemId, setItemId] = useState("");
   const [qty, setQty] = useState("1");
