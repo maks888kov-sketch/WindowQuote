@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useOrgContext } from "../context/OrgContext";
 import { useOffline } from "../context/OfflineContext";
@@ -11,8 +11,11 @@ type OrderRecord = {
   title: string;
   status: string;
   created_at: string;
+  org_id?: string;
   customers?: { name: string }[] | null;
   sites?: { name: string }[] | null;
+  total_amount?: number;
+  items_count?: number;
 };
 
 type CustomerOption = {
@@ -51,10 +54,11 @@ const OrdersPage = () => {
   const [customerId, setCustomerId] = useState("");
   const [siteId, setSiteId] = useState("");
   const [status, setStatus] = useState("draft");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const canCreate = useMemo(() => Boolean(activeOrgId && title && customerId), [activeOrgId, title, customerId]);
 
-  const loadOrders = async () => {
+  const loadOrders = useCallback(async () => {
     if (!activeOrgId) {
       setOrders([]);
       return;
@@ -87,14 +91,31 @@ const OrdersPage = () => {
       setOrders((cached as OrderRecord[]) ?? []);
     } else {
       setError(null);
-      setOrders(data ?? []);
-      if (data && data.length > 0) {
-        cacheOrders(activeOrgId, data);
+      let list: OrderRecord[] = (data ?? []) as OrderRecord[];
+      if (list.length > 0) {
+        cacheOrders(activeOrgId, list);
+        list = await enrichOrdersWithQuotes(list);
       }
+      setOrders(list);
     }
 
     setLoading(false);
-  };
+  }, [activeOrgId, statusFilter, online, getCachedOrdersForOrg]);
+
+  const enrichOrdersWithQuotes = useCallback(async (orderList: OrderRecord[]) => {
+    if (orderList.length === 0) return orderList;
+    const orderIds = orderList.map((o) => o.id);
+    const { data: quotes } = await supabase
+      .from("quotes")
+      .select("order_id, total_amount")
+      .in("order_id", orderIds)
+      .order("created_at", { ascending: false });
+    const byOrder: Record<string, number> = {};
+    (quotes ?? []).forEach((q) => {
+      if (!byOrder[q.order_id]) byOrder[q.order_id] = Number(q.total_amount) || 0;
+    });
+    return orderList.map((o) => ({ ...o, total_amount: byOrder[o.id] }));
+  }, []);
 
   const loadCustomers = async () => {
     if (!activeOrgId) return;
@@ -140,7 +161,7 @@ const OrdersPage = () => {
     setSaving(false);
   };
 
-  useEffect(() => { void loadOrders(); }, [activeOrgId, statusFilter]);
+  useEffect(() => { void loadOrders(); }, [loadOrders]);
   useEffect(() => { void loadCustomers(); void loadSites(); }, [activeOrgId]);
   useEffect(() => {
     const unregister = registerRetry(() => { void loadOrders(); void loadCustomers(); void loadSites(); });
@@ -151,6 +172,17 @@ const OrdersPage = () => {
     acc[o.status] = (acc[o.status] ?? 0) + 1;
     return acc;
   }, {} as Record<string, number>);
+
+  const filteredOrders = useMemo(() => {
+    if (!searchQuery.trim()) return orders;
+    const q = searchQuery.trim().toLowerCase();
+    return orders.filter(
+      (o) =>
+        o.title?.toLowerCase().includes(q) ||
+        o.order_number?.toLowerCase().includes(q) ||
+        (Array.isArray(o.customers) && o.customers[0]?.name?.toLowerCase().includes(q))
+    );
+  }, [orders, searchQuery]);
 
   return (
     <section className="stack">
@@ -226,22 +258,34 @@ const OrdersPage = () => {
         </div>
       )}
 
-      <div className="row" style={{ justifyContent: "space-between", alignItems: "center", flexWrap: "wrap" }}>
-        <h2 style={{ margin: 0 }}>Заказы</h2>
-        <label className="field" style={{ flexDirection: "row", alignItems: "center", gap: "0.5rem" }}>
-          <span>Статус:</span>
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-            <option value="all">Все</option>
-            {statusOptions.map((opt) => (
-              <option key={opt} value={opt}>{statusLabels[opt] ?? opt}</option>
+      <div className="card" style={{ padding: "1rem" }}>
+        <div className="row" style={{ flexWrap: "wrap", gap: "1rem" }}>
+          <input
+            type="search"
+            className="search-input"
+            placeholder="Поиск по имени, телефону или номеру заказа..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{ flex: 1, minWidth: 200 }}
+          />
+          <div className="filter-tabs">
+            {(["all", ...statusOptions] as const).map((opt) => (
+              <button
+                key={opt}
+                type="button"
+                className={`filter-tab ${statusFilter === opt ? "active" : ""}`}
+                onClick={() => setStatusFilter(opt)}
+              >
+                {opt === "all" ? "Все" : statusLabels[opt] ?? opt}
+              </button>
             ))}
-          </select>
-        </label>
+          </div>
+        </div>
       </div>
 
       {loading ? (
         <div className="empty-state"><p>Загрузка…</p></div>
-      ) : orders.length === 0 ? (
+      ) : filteredOrders.length === 0 ? (
         <div className="card empty-state">
           <p>Пока нет заказов.</p>
           <p>Создайте первый заказ или перейдите к замеру.</p>
@@ -250,30 +294,56 @@ const OrdersPage = () => {
           </Link>
         </div>
       ) : (
-        <div className="orders-grid">
-          {orders.map((order) => (
-            <Link to={`/orders/${order.id}`} key={order.id} className="order-card">
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.5rem" }}>
-                <strong style={{ fontSize: "1rem" }}>
-                  {order.order_number ? `${order.order_number} · ` : ""}{order.title}
-                </strong>
-                <span className={`status-pill ${order.status}`}>
-                  {statusLabels[order.status] ?? order.status}
-                </span>
-              </div>
-              <p style={{ margin: 0, fontSize: "0.9rem", color: "#64748b" }}>
-                {order.customers?.[0]?.name ?? "—"} · {order.sites?.[0]?.name ?? "—"}
-              </p>
-              <small style={{ color: "#94a3b8" }}>
-                {new Date(order.created_at).toLocaleDateString("ru-RU")}
-              </small>
-              <div style={{ marginTop: "0.75rem" }}>
-                <span className="btn secondary" style={{ padding: "0.4rem 0.8rem", fontSize: "0.85rem" }}>
-                  Замер →
-                </span>
-              </div>
-            </Link>
-          ))}
+        <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+          <div className="table-wrap">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>№ Заказа</th>
+                  <th>Клиент</th>
+                  <th>Позиции</th>
+                  <th>Сумма</th>
+                  <th>Статус</th>
+                  <th>Дата</th>
+                  <th>Действия</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredOrders.map((order) => (
+                  <tr key={order.id}>
+                    <td style={{ fontWeight: 600 }}>
+                      {order.order_number ?? `#${order.id.slice(-6)}`}
+                    </td>
+                    <td>
+                      <div>
+                        <p style={{ margin: 0, fontWeight: 600 }}>{order.customers?.[0]?.name ?? "—"}</p>
+                        <p className="app-subtitle" style={{ margin: 0 }}>{order.sites?.[0]?.name ?? ""}</p>
+                      </div>
+                    </td>
+                    <td>
+                      <span className="badge">{order.items_count ?? 0} поз.</span>
+                    </td>
+                    <td style={{ fontWeight: 600 }}>
+                      {order.total_amount != null ? `${order.total_amount.toLocaleString("ru")} ₽` : "—"}
+                    </td>
+                    <td>
+                      <span className={`status-pill ${order.status}`}>
+                        {statusLabels[order.status] ?? order.status}
+                      </span>
+                    </td>
+                    <td>
+                      {new Date(order.created_at).toLocaleDateString("ru-RU")}
+                    </td>
+                    <td>
+                      <Link className="btn secondary" to={`/orders/${order.id}`} style={{ padding: "0.4rem 0.75rem", fontSize: "0.85rem" }}>
+                        Открыть →
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </section>

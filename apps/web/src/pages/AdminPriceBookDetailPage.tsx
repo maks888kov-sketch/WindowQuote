@@ -32,6 +32,7 @@ type ProfileEntry = {
   profile_type: string;
   section: string | null;
   cost_per_meter: number;
+  product_type?: string | null;
 };
 
 const ITEM_TYPES = [
@@ -79,7 +80,8 @@ const AdminPriceBookDetailPage = () => {
   const [importing, setImporting] = useState(false);
   const [profiles, setProfiles] = useState<ProfileEntry[]>([]);
   const [showProfileForm, setShowProfileForm] = useState(false);
-  const [profileForm, setProfileForm] = useState({ brand: "", profile_type: "", section: "", cost_per_meter: "0" });
+  const [editingProfileId, setEditingProfileId] = useState<string | null>(null);
+  const [profileForm, setProfileForm] = useState({ brand: "", profile_type: "", section: "", cost_per_meter: "0", product_type: "window" });
 
   const load = useCallback(async () => {
     if (!bookId || !activeOrgId || !isAdmin) return;
@@ -119,7 +121,7 @@ const AdminPriceBookDetailPage = () => {
 
       const { data: profData } = await supabase
         .from("profile_catalog")
-        .select("id, brand, profile_type, section, cost_per_meter")
+        .select("id, brand, profile_type, section, cost_per_meter, product_type")
         .eq("price_book_id", bookId)
         .order("brand");
       setProfiles(profData ?? []);
@@ -200,16 +202,26 @@ const AdminPriceBookDetailPage = () => {
     if (!bookId || !activeOrgId || !profileForm.brand.trim() || !profileForm.profile_type.trim()) return;
     setMessage(null);
     try {
-      const { error } = await supabase.from("profile_catalog").insert({
-        org_id: activeOrgId,
-        price_book_id: bookId,
+      const payload = {
         brand: profileForm.brand.trim(),
         profile_type: profileForm.profile_type.trim(),
         section: profileForm.section.trim() || null,
         cost_per_meter: parseFloat(profileForm.cost_per_meter) || 0,
-      });
-      if (error) throw error;
-      setProfileForm({ brand: "", profile_type: "", section: "", cost_per_meter: "0" });
+        product_type: profileForm.product_type || "window",
+      };
+      if (editingProfileId) {
+        const { error } = await supabase.from("profile_catalog").update(payload).eq("id", editingProfileId);
+        if (error) throw error;
+        setEditingProfileId(null);
+      } else {
+        const { error } = await supabase.from("profile_catalog").insert({
+          org_id: activeOrgId,
+          price_book_id: bookId,
+          ...payload,
+        });
+        if (error) throw error;
+      }
+      setProfileForm({ brand: "", profile_type: "", section: "", cost_per_meter: "0", product_type: "window" });
       setShowProfileForm(false);
       await load();
     } catch (err) {
@@ -526,7 +538,14 @@ const AdminPriceBookDetailPage = () => {
       <article className="card stack">
         <div className="row" style={{ justifyContent: "space-between", flexWrap: "wrap" }}>
           <h2>Профили</h2>
-          <button className="btn" onClick={() => setShowProfileForm(!showProfileForm)}>
+          <button
+            className="btn"
+            onClick={() => {
+              setEditingProfileId(null);
+              setProfileForm({ brand: "", profile_type: "", section: "", cost_per_meter: "0", product_type: "window" });
+              setShowProfileForm(!showProfileForm);
+            }}
+          >
             {showProfileForm ? "Отмена" : "+ Добавить профиль"}
           </button>
         </div>
@@ -543,6 +562,14 @@ const AdminPriceBookDetailPage = () => {
               <label className="field">
                 Тип профиля *
                 <input type="text" value={profileForm.profile_type} onChange={(e) => setProfileForm((p) => ({ ...p, profile_type: e.target.value }))} required placeholder="Напр. 3-камерный" />
+              </label>
+              <label className="field">
+                Тип (окно/дверь/балкон)
+                <select value={profileForm.product_type} onChange={(e) => setProfileForm((p) => ({ ...p, product_type: e.target.value }))}>
+                  <option value="window">Окно</option>
+                  <option value="door">Дверь</option>
+                  <option value="balcony">Балкон</option>
+                </select>
               </label>
               <label className="field">
                 Сечение
@@ -565,6 +592,7 @@ const AdminPriceBookDetailPage = () => {
                 <tr>
                   <th>Бренд</th>
                   <th>Тип профиля</th>
+                  <th>Категория</th>
                   <th>Сечение</th>
                   <th>Цена за м</th>
                   <th></th>
@@ -575,10 +603,28 @@ const AdminPriceBookDetailPage = () => {
                   <tr key={p.id}>
                     <td>{p.brand}</td>
                     <td>{p.profile_type}</td>
+                    <td>{p.product_type === "door" ? "Дверь" : p.product_type === "balcony" ? "Балкон" : "Окно"}</td>
                     <td>{p.section ?? "—"}</td>
                     <td>{Number(p.cost_per_meter).toFixed(2)} ₽</td>
                     <td>
-                      <button className="btn secondary danger" type="button" onClick={() => handleDeleteProfile(p.id)}>
+                      <button
+                        className="btn secondary"
+                        type="button"
+                        onClick={() => {
+                          setEditingProfileId(p.id);
+                          setProfileForm({
+                            brand: p.brand,
+                            profile_type: p.profile_type,
+                            section: p.section ?? "",
+                            cost_per_meter: String(p.cost_per_meter),
+                            product_type: (p.product_type ?? "window") as string,
+                          });
+                          setShowProfileForm(true);
+                        }}
+                      >
+                        Изменить
+                      </button>
+                      <button className="btn secondary danger" type="button" onClick={() => handleDeleteProfile(p.id)} style={{ marginLeft: "0.25rem" }}>
                         Удалить
                       </button>
                     </td>

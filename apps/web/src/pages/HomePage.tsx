@@ -1,4 +1,7 @@
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { useOrgContext } from "../context/OrgContext";
+import { supabase } from "../lib/supabaseClient";
 
 const moduleCards = [
   {
@@ -46,8 +49,42 @@ const moduleCards = [
 ];
 
 const HomePage = () => {
+  const { activeOrgId } = useOrgContext();
+  const [hasOrders, setHasOrders] = useState(false);
+  const [hasCustomers, setHasCustomers] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    if (!activeOrgId) {
+      setLoading(false);
+      return;
+    }
+    const [ordersRes, customersRes] = await Promise.all([
+      supabase.from("orders").select("id").eq("org_id", activeOrgId).limit(1),
+      supabase.from("customers").select("id").eq("org_id", activeOrgId).limit(1),
+    ]);
+    setHasOrders((ordersRes.data?.length ?? 0) > 0);
+    setHasCustomers((customersRes.data?.length ?? 0) > 0);
+    setLoading(false);
+  }, [activeOrgId]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const showOnboarding = !loading && !hasOrders && !hasCustomers;
+
   return (
     <section className="home-page">
+      {showOnboarding && (
+        <div className="hero-section onboarding-cta">
+          <h2 className="hero-title">Готовы начать работу?</h2>
+          <p className="hero-subtitle">Создайте свой первый расчёт прямо сейчас</p>
+          <Link className="btn btn-hero" to="/calculator">
+            Открыть калькулятор →
+          </Link>
+        </div>
+      )}
       <div className="hero-section">
         <h1 className="hero-title">WindowQuote</h1>
         <p className="hero-subtitle">Профессиональная система для расчёта окон и дверей</p>

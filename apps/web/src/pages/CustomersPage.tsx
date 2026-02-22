@@ -10,15 +10,67 @@ type Customer = {
   notes: string | null;
 };
 
+type OrderSummary = { customer_id: string; orders_count: number; total_amount: number };
+
 const CustomersPage = () => {
   const { activeOrgId } = useOrgContext();
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [ordersSummary, setOrdersSummary] = useState<OrderSummary[]>([]);
+  const [totalOrdersCount, setTotalOrdersCount] = useState(0);
+  const [totalAmount, setTotalAmount] = useState(0);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", phone: "", notes: "" });
   const [error, setError] = useState<string | null>(null);
+
+  const loadOrdersStats = useCallback(async () => {
+    if (!activeOrgId) return;
+    const { data: ordersData } = await supabase
+      .from("orders")
+      .select("id, customer_id")
+      .eq("org_id", activeOrgId);
+    const orderIds = (ordersData ?? []).map((o) => o.id);
+    setTotalOrdersCount(orderIds.length);
+    if (orderIds.length === 0) {
+      setOrdersSummary([]);
+      setTotalAmount(0);
+      return;
+    }
+    const { data: quotesData } = await supabase
+      .from("quotes")
+      .select("order_id, total_amount")
+      .in("order_id", orderIds)
+      .order("created_at", { ascending: false });
+    const byOrder: Record<string, number> = {};
+    (quotesData ?? []).forEach((q) => {
+      if (!byOrder[q.order_id]) byOrder[q.order_id] = Number(q.total_amount) || 0;
+    });
+    const byCustomer: Record<string, number> = {};
+    let total = 0;
+    (ordersData ?? []).forEach((o) => {
+      const amt = byOrder[o.id] ?? 0;
+      total += amt;
+      if (o.customer_id) {
+        byCustomer[o.customer_id] = (byCustomer[o.customer_id] ?? 0) + amt;
+      }
+    });
+    setTotalAmount(total);
+    const countByCustomer: Record<string, number> = {};
+    (ordersData ?? []).forEach((o) => {
+      if (o.customer_id) {
+        countByCustomer[o.customer_id] = (countByCustomer[o.customer_id] ?? 0) + 1;
+      }
+    });
+    setOrdersSummary(
+      Object.keys(byCustomer).map((customer_id) => ({
+        customer_id,
+        orders_count: countByCustomer[customer_id] ?? 0,
+        total_amount: byCustomer[customer_id] ?? 0,
+      }))
+    );
+  }, [activeOrgId]);
 
   const loadCustomers = useCallback(async () => {
     if (!activeOrgId) return;
@@ -46,6 +98,10 @@ const CustomersPage = () => {
     void loadCustomers();
   }, [loadCustomers]);
 
+  useEffect(() => {
+    void loadOrdersStats();
+  }, [loadOrdersStats]);
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!activeOrgId || !form.name.trim()) return;
@@ -66,6 +122,7 @@ const CustomersPage = () => {
     setForm({ name: "", email: "", phone: "", notes: "" });
     setShowForm(false);
     await loadCustomers();
+    await loadOrdersStats();
   };
 
   return (
@@ -84,6 +141,14 @@ const CustomersPage = () => {
         <div className="stats-card">
           <span className="stats-label">Всего клиентов</span>
           <span className="stats-value">{customers.length}</span>
+        </div>
+        <div className="stats-card">
+          <span className="stats-label">Всего заказов</span>
+          <span className="stats-value stats-value-green">{totalOrdersCount}</span>
+        </div>
+        <div className="stats-card">
+          <span className="stats-label">Общая сумма</span>
+          <span className="stats-value" style={{ color: "#8b5cf6" }}>{totalAmount.toLocaleString("ru")} ₽</span>
         </div>
       </div>
 
@@ -150,17 +215,36 @@ const CustomersPage = () => {
             <p>Пока нет клиентов. Создайте первого клиента.</p>
           </div>
         ) : (
-          <div className="list">
-            {customers.map((c) => (
-              <div key={c.id} className="list-row">
-                <div>
-                  <strong>{c.name}</strong>
-                  <p style={{ margin: 0, fontSize: "0.9rem", color: "#64748b" }}>
-                    {[c.email, c.phone].filter(Boolean).join(" · ") || "—"}
-                  </p>
-                </div>
-              </div>
-            ))}
+          <div className="table-wrap">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Клиент</th>
+                  <th>Контакты</th>
+                  <th>Заказы</th>
+                  <th>Сумма заказов</th>
+                </tr>
+              </thead>
+              <tbody>
+                {customers.map((c) => {
+                  const summary = ordersSummary.find((s) => s.customer_id === c.id);
+                  return (
+                    <tr key={c.id}>
+                      <td>
+                        <strong>{c.name}</strong>
+                        {c.notes && <p className="app-subtitle" style={{ margin: 0 }}>{c.notes}</p>}
+                      </td>
+                      <td>
+                        <p style={{ margin: 0, fontSize: "0.9rem" }}>{c.phone ?? "—"}</p>
+                        <p className="app-subtitle" style={{ margin: 0 }}>{c.email ?? ""}</p>
+                      </td>
+                      <td><span className="badge">{summary?.orders_count ?? 0}</span></td>
+                      <td style={{ fontWeight: 600 }}>{summary ? `${summary.total_amount.toLocaleString("ru")} ₽` : "—"}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

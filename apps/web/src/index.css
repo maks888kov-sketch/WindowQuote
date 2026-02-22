@@ -450,6 +450,10 @@ a {
   color: var(--brand-primary) !important;
 }
 
+.hero-section.onboarding-cta {
+  margin-bottom: 1rem;
+}
+
 .feature-cards {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -753,6 +757,57 @@ a {
 .profile-card-delete {
   cursor: pointer;
   opacity: 0.7;
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 1rem;
+}
+
+.modal-content {
+  max-width: 480px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+/* Window visualizer */
+.window-visualizer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.window-visualizer-svg {
+  background: linear-gradient(to bottom, #e0f2fe, #bae6fd);
+  border-radius: 1rem;
+}
+
+.window-visualizer-text {
+  font-size: 12px;
+  fill: #4b5563;
+}
+
+.window-visualizer-summary {
+  margin-top: 1rem;
+  display: flex;
+  gap: 1rem;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.cart-item {
+  padding: 0.75rem;
+  background: #f8fafc;
+  border-radius: 0.5rem;
+  border: 1px solid #e2e8f0;
 }
 
 /* Stats cards (Orders, Customers) */
