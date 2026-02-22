@@ -284,16 +284,16 @@ const NewMeasurementPage = () => {
     <section className="stack">
       <div className="page-header">
         <div>
-          <h1>{measurementMeta ? `Measurement v${measurementMeta.version}` : "New Measurement"}</h1>
-          <p>Create a new measurement version for order {id}.</p>
+          <h1>{measurementMeta ? `Замер v${measurementMeta.version}` : "Новый замер"}</h1>
+          <p>Версия замера по заказу {id}.</p>
         </div>
         {!measurementId ? (
           <button className="btn" onClick={handleCreateMeasurement} disabled={saving || !id}>
-            {saving ? "Creating..." : "Create measurement"}
+            {saving ? "Создание…" : "Создать замер"}
           </button>
         ) : (
           <button className="btn" onClick={() => navigate(`/orders/${id}`)}>
-            Back to order
+            К заказу
           </button>
         )}
       </div>
@@ -303,27 +303,27 @@ const NewMeasurementPage = () => {
       {measurementMeta && (
         <div className="card stack">
           <div className="row">
-            <h2>Version details</h2>
-            <span className="pill">{isReadOnly ? "Read-only" : "Editable"}</span>
+            <h2>Версия</h2>
+            <span className="pill">{isReadOnly ? "Только чтение" : "Редактируемый"}</span>
           </div>
           <p>
-            Created {new Date(measurementMeta.created_at).toLocaleString()} · Notes: {measurementMeta.notes ?? "None"}
+            Создан {new Date(measurementMeta.created_at).toLocaleString("ru-RU")} · Заметки: {measurementMeta.notes ?? "—"}
           </p>
-          {isReadOnly && <p>This measurement is locked because a newer version exists.</p>}
+          {isReadOnly && <p>Эта версия заблокирована: есть более новая версия.</p>}
         </div>
       )}
 
       <div className="card stack">
-        <h2>Measurement items</h2>
+        <h2>Позиции замера</h2>
         {!measurementId ? (
           <div className="empty-state">
-            <p>Start by creating a new measurement version.</p>
+            <p>Создайте новую версию замера.</p>
           </div>
         ) : (
           <>
             <div className="grid">
               <label className="field">
-                Width (mm)
+                Ширина (мм)
                 <input
                   type="number"
                   placeholder="0"
@@ -333,7 +333,7 @@ const NewMeasurementPage = () => {
                 />
               </label>
               <label className="field">
-                Height (mm)
+                Высота (мм)
                 <input
                   type="number"
                   placeholder="0"
@@ -343,7 +343,7 @@ const NewMeasurementPage = () => {
                 />
               </label>
               <label className="field">
-                Quantity
+                Количество
                 <input
                   type="number"
                   placeholder="1"
@@ -354,16 +354,16 @@ const NewMeasurementPage = () => {
               </label>
             </div>
             <label className="field">
-              Notes
+              Заметки
               <input
                 value={notes}
                 onChange={(event) => setNotes(event.target.value)}
-                placeholder="Living room"
+                placeholder="Комната, окно..."
                 disabled={isReadOnly}
               />
             </label>
             <label className="field">
-              Params (JSON)
+              Параметры (JSON)
               <textarea
                 rows={4}
                 value={paramsJson}
@@ -372,11 +372,11 @@ const NewMeasurementPage = () => {
               />
             </label>
             <button className="btn secondary" onClick={handleAddItem} disabled={!canEdit}>
-              Add item
+              Добавить позицию
             </button>
             {items.length === 0 ? (
               <div className="empty-state">
-                <p>No items yet.</p>
+                <p>Пока нет позиций.</p>
               </div>
             ) : (
               <div className="list">
@@ -385,13 +385,13 @@ const NewMeasurementPage = () => {
                     <div>
                       <strong>{item.item_type}</strong>
                       <p>
-                        {item.width ?? 0} × {item.height ?? 0} · Qty {item.qty}
+                        {item.width ?? 0} × {item.height ?? 0} · кол-во {item.qty}
                       </p>
                       {item.notes && <small>{item.notes}</small>}
                     </div>
                     <div className="stack">
                       <label className="field">
-                        Attach photo
+                        Прикрепить фото
                         <input
                           type="file"
                           accept="image/*"

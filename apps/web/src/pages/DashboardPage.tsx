@@ -30,6 +30,9 @@ type Stat = {
 };
 
 const COLORS = ["#0f172a", "#334155", "#64748b", "#94a3b8", "#cbd5e1", "#e2e8f0"];
+const statusLabels: Record<string, string> = {
+  draft: "Черновик", quoted: "Смета", approved: "Утверждён", scheduled: "В работе", completed: "Готов", canceled: "Отменён",
+};
 
 const DashboardPage = () => {
   const { activeOrgId } = useOrgContext();
@@ -202,14 +205,14 @@ const DashboardPage = () => {
   };
 
   const pieData = stats
-    ? Object.entries(stats.byStatus).map(([name, value]) => ({ name, value }))
+    ? Object.entries(stats.byStatus).map(([name, value]) => ({ name: statusLabels[name] ?? name, value }))
     : [];
 
   return (
     <section className="stack">
       <div className="page-header">
-        <h1>Dashboard</h1>
-        <p>Analytics and overview.</p>
+        <h1>Панель</h1>
+        <p>Аналитика и сводка.</p>
       </div>
       <div className="row" style={{ gap: "0.5rem", marginBottom: "1rem", flexWrap: "wrap" }}>
         {(["7d", "30d", "90d"] as const).map((p) => (
@@ -218,46 +221,46 @@ const DashboardPage = () => {
             className={`btn ${period === p ? "" : "secondary"}`}
             onClick={() => setPeriod(p)}
           >
-            {p === "7d" ? "7 days" : p === "30d" ? "30 days" : "90 days"}
+            {p === "7d" ? "7 дн." : p === "30d" ? "30 дн." : "90 дн."}
           </button>
         ))}
         <button className="btn secondary" onClick={exportPdf} disabled={exporting !== null || !stats}>
-          {exporting === "pdf" ? "…" : "Export PDF"}
+          {exporting === "pdf" ? "…" : "Экспорт PDF"}
         </button>
         <button className="btn secondary" onClick={exportExcel} disabled={exporting !== null || !stats}>
-          {exporting === "xlsx" ? "…" : "Export Excel"}
+          {exporting === "xlsx" ? "…" : "Экспорт Excel"}
         </button>
       </div>
       {loading ? (
-        <p>Loading...</p>
+        <p>Загрузка…</p>
       ) : stats ? (
         <>
           <div className="card" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: "1rem" }}>
             <div>
-              <p className="app-subtitle">Orders {ordersTrend != null && <span style={{ color: Number(ordersTrend) >= 0 ? "green" : "red" }}>({ordersTrend}%)</span>}</p>
+              <p className="app-subtitle">Заказы {ordersTrend != null && <span style={{ color: Number(ordersTrend) >= 0 ? "green" : "red" }}>({ordersTrend}%)</span>}</p>
               <p style={{ fontSize: "1.5rem", fontWeight: 700 }}>{stats.totalOrders}</p>
             </div>
             <div>
-              <p className="app-subtitle">Quoted</p>
+              <p className="app-subtitle">Со сметой</p>
               <p style={{ fontSize: "1.5rem", fontWeight: 700 }}>{stats.totalQuoted}</p>
             </div>
             <div>
-              <p className="app-subtitle">Completed</p>
+              <p className="app-subtitle">Выполнено</p>
               <p style={{ fontSize: "1.5rem", fontWeight: 700 }}>{stats.totalCompleted}</p>
             </div>
             <div>
-              <p className="app-subtitle">Conversion</p>
+              <p className="app-subtitle">Конверсия</p>
               <p style={{ fontSize: "1.5rem", fontWeight: 700 }}>{conversion}%</p>
             </div>
             <div>
-              <p className="app-subtitle">Total amount {amountTrend != null && <span style={{ color: Number(amountTrend) >= 0 ? "green" : "red" }}>({amountTrend}%)</span>}</p>
+              <p className="app-subtitle">Сумма {amountTrend != null && <span style={{ color: Number(amountTrend) >= 0 ? "green" : "red" }}>({amountTrend}%)</span>}</p>
               <p style={{ fontSize: "1.5rem", fontWeight: 700 }}>${stats.totalAmount.toFixed(0)}</p>
             </div>
           </div>
 
           {stats.dailyData.length > 0 && (
             <div className="card">
-              <h2>Orders & amount by day</h2>
+              <h2>Заказы и сумма по дням</h2>
               <div style={{ height: 240 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={stats.dailyData}>
@@ -266,8 +269,8 @@ const DashboardPage = () => {
                     <YAxis yAxisId="left" tick={{ fontSize: 12 }} />
                     <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 12 }} />
                     <Tooltip />
-                    <Area yAxisId="left" type="monotone" dataKey="orders" stroke="#0f172a" fill="#0f172a" fillOpacity={0.3} name="Orders" />
-                    <Area yAxisId="right" type="monotone" dataKey="amount" stroke="#334155" fill="#334155" fillOpacity={0.2} name="Amount" />
+                    <Area yAxisId="left" type="monotone" dataKey="orders" stroke="#0f172a" fill="#0f172a" fillOpacity={0.3} name="Заказы" />
+                    <Area yAxisId="right" type="monotone" dataKey="amount" stroke="#334155" fill="#334155" fillOpacity={0.2} name="Сумма" />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
@@ -276,7 +279,7 @@ const DashboardPage = () => {
 
           {pieData.length > 0 && (
             <div className="card">
-              <h2>By status</h2>
+              <h2>По статусам</h2>
               <div style={{ height: 220, display: "flex", alignItems: "center" }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
@@ -293,16 +296,16 @@ const DashboardPage = () => {
           )}
 
           <div className="card">
-            <h2>Recent orders</h2>
+            <h2>Последние заказы</h2>
             {stats.recentOrders.length === 0 ? (
-              <p className="empty-state">No orders in this period.</p>
+              <p className="empty-state">Нет заказов за период.</p>
             ) : (
               <ul>
                 {stats.recentOrders.map((o) => (
                   <li key={o.id}>
                     <Link to={`/orders/${o.id}`}>{o.order_number ? `${o.order_number} · ` : ""}{o.title}</Link>
                     {" · "}
-                    <span className="badge">{o.status}</span>
+                    <span className="badge">{statusLabels[o.status] ?? o.status}</span>
                     {" · "}
                     {new Date(o.created_at).toLocaleDateString()}
                   </li>
@@ -312,7 +315,7 @@ const DashboardPage = () => {
           </div>
         </>
       ) : (
-        <p className="notice">Failed to load analytics.</p>
+        <p className="notice">Не удалось загрузить аналитику.</p>
       )}
     </section>
   );

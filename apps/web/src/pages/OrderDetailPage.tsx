@@ -52,6 +52,15 @@ type Task = {
   assignee_email?: string;
 };
 
+const statusLabels: Record<string, string> = {
+  draft: "Черновик",
+  quoted: "Смета",
+  approved: "Утверждён",
+  scheduled: "В работе",
+  completed: "Готов",
+  canceled: "Отменён",
+};
+
 const OrderDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -308,25 +317,25 @@ const OrderDetailPage = () => {
     <section className="stack">
       <div className="page-header">
         <div>
-          <h1>{order ? (order.order_number ? `${order.order_number} · ` : "") + order.title : `Order ${id}`}</h1>
-          <p>Status history, measurements, quotes, and tasks.</p>
+          <h1>{order ? (order.order_number ? `${order.order_number} · ` : "") + order.title : `Заказ ${id}`}</h1>
+          <p>История статусов, замеры, сметы и задачи.</p>
         </div>
         <button className="btn" onClick={handleNewMeasurement} disabled={creatingMeasurement || !activeOrgId}>
-          {creatingMeasurement ? "Creating..." : "New measurement"}
+          {creatingMeasurement ? "Создание…" : "Новый замер"}
         </button>
       </div>
       {error && <p className="error">{error}</p>}
       {loading ? (
         <div className="card">
-          <p>Loading order details...</p>
+          <p>Загрузка заказа…</p>
         </div>
       ) : (
         <>
           <div className="card stack">
-            <h2>Order details</h2>
-            <p>Status: {order?.status ?? "Unknown"}</p>
-            <p>Customer: {order?.customers?.[0]?.name ?? "Unknown"}</p>
-            <p>Site: {order?.sites?.[0]?.name ?? "No site"}</p>
+            <h2>Детали заказа</h2>
+            <p>Статус: {order?.status ? statusLabels[order.status] ?? order.status : "—"}</p>
+            <p>Клиент: {order?.customers?.[0]?.name ?? "—"}</p>
+            <p>Объект: {order?.sites?.[0]?.name ?? "—"}</p>
             {order && order.status !== "canceled" && (
               <div className="row" style={{ gap: "0.5rem", flexWrap: "wrap" }}>
                 {["draft", "quoted", "approved", "scheduled", "completed"].map((s) => (
@@ -335,7 +344,7 @@ const OrderDetailPage = () => {
                     className={`btn ${order.status === s ? "" : "secondary"}`}
                     onClick={() => handleUpdateOrderStatus(s)}
                   >
-                    {s}
+                    {statusLabels[s] ?? s}
                   </button>
                 ))}
               </div>
@@ -343,22 +352,22 @@ const OrderDetailPage = () => {
           </div>
 
           <div className="card">
-            <h2>Measurements</h2>
+            <h2>Замеры</h2>
             <Link className="btn secondary" to={`/orders/${id}/measurements`} style={{ marginBottom: "0.5rem" }}>
-              View all versions
+              Все версии
             </Link>
             {measurements.length === 0 ? (
-              <p className="empty-state">No measurements yet. Add your first measurement version.</p>
+              <p className="empty-state">Пока нет замеров. Добавьте первый замер.</p>
             ) : (
               <div className="list">
                 {measurements.map((m) => (
                   <div className="list-row" key={m.id}>
                     <div>
-                      <strong>Version {m.version}</strong>
-                      <p>{m.notes ?? "No notes"} · {itemCounts[m.id] ?? 0} items</p>
+                      <strong>Версия {m.version}</strong>
+                      <p>{m.notes ?? "—"} · {itemCounts[m.id] ?? 0} поз.</p>
                     </div>
                     <Link className="btn secondary" to={`/orders/${id}/measurements/new?measurementId=${m.id}`}>
-                      View
+                      Открыть
                     </Link>
                   </div>
                 ))}
@@ -367,10 +376,10 @@ const OrderDetailPage = () => {
           </div>
 
           <div className="card stack">
-            <h2>Calculate quote</h2>
+            <h2>Рассчитать смету</h2>
             <form className="row form-wrap" onSubmit={handleCalculateQuote}>
               <label className="field">
-                Measurement
+                Замер
                 <select value={calcMeasurementId} onChange={(e) => setCalcMeasurementId(e.target.value)}>
                   {measurements.map((m) => (
                     <option key={m.id} value={m.id}>v{m.version}</option>
@@ -378,7 +387,7 @@ const OrderDetailPage = () => {
                 </select>
               </label>
               <label className="field">
-                Price book
+                Прайс-лист
                 <select value={calcPriceBookId} onChange={(e) => setCalcPriceBookId(e.target.value)}>
                   {priceBooks.map((pb) => (
                     <option key={pb.id} value={pb.id}>{pb.name}</option>
@@ -386,7 +395,7 @@ const OrderDetailPage = () => {
                 </select>
               </label>
               <label className="field">
-                Discount %
+                Скидка %
                 <input
                   type="number"
                   min="0"
@@ -397,23 +406,23 @@ const OrderDetailPage = () => {
                 />
               </label>
               <button className="btn" type="submit" disabled={calculating || !calcMeasurementId || !calcPriceBookId || priceBooks.length === 0}>
-                {calculating ? "Calculating..." : "Calculate"}
+                {calculating ? "Расчёт…" : "Рассчитать"}
               </button>
             </form>
           </div>
 
           {quotes.length > 0 && (
             <div className="card">
-              <h2>Quotes</h2>
+              <h2>Сметы</h2>
               <div className="table-wrap">
                 <table className="table">
                   <thead>
                     <tr>
-                      <th>Quote</th>
-                      <th>Date</th>
-                      <th>Total</th>
-                      <th>Discount</th>
-                      <th>Actions</th>
+                      <th>Смета</th>
+                      <th>Дата</th>
+                      <th>Сумма</th>
+                      <th>Скидка</th>
+                      <th>Действия</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -429,7 +438,7 @@ const OrderDetailPage = () => {
                             onClick={() => handleGeneratePdf(q.id)}
                             disabled={generatingPdf === q.id}
                           >
-                            {generatingPdf === q.id ? "Generating..." : "PDF"}
+                            {generatingPdf === q.id ? "Формирование…" : "PDF"}
                           </button>
                         </td>
                       </tr>
@@ -439,14 +448,14 @@ const OrderDetailPage = () => {
               </div>
               {quotes[0]?.quote_lines && quotes[0].quote_lines.length > 0 && (
                 <details style={{ marginTop: "1rem" }}>
-                  <summary>Latest quote lines</summary>
+                  <summary>Позиции последней сметы</summary>
                   <table className="table">
                     <thead>
                       <tr>
-                        <th>Description</th>
-                        <th>Qty</th>
-                        <th>Unit price</th>
-                        <th>Amount</th>
+                        <th>Наименование</th>
+                        <th>Кол-во</th>
+                        <th>Цена</th>
+                        <th>Сумма</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -466,12 +475,12 @@ const OrderDetailPage = () => {
           )}
 
           <div className="card">
-            <h2>Inventory reserve</h2>
+            <h2>Резерв со склада</h2>
             <OrderReserveSection orderId={id!} orgId={activeOrgId} onDone={reloadAll} />
           </div>
 
           <div className="card">
-            <h2>Tasks</h2>
+            <h2>Задачи</h2>
             <TasksSection
               orderId={id!}
               orgId={activeOrgId}
@@ -484,14 +493,14 @@ const OrderDetailPage = () => {
           </div>
 
           <div className="card">
-            <h2>Status history</h2>
+            <h2>История статусов</h2>
             {statusHistory.length === 0 ? (
-              <p className="empty-state">No status updates yet.</p>
+              <p className="empty-state">Пока нет смены статусов.</p>
             ) : (
               <ul className="timeline">
                 {statusHistory.map((entry) => (
                   <li key={`${entry.status}-${entry.created_at}`}>
-                    {entry.status} · {new Date(entry.created_at).toLocaleString()}
+                    {statusLabels[entry.status] ?? entry.status} · {new Date(entry.created_at).toLocaleString("ru-RU")}
                   </li>
                 ))}
               </ul>
@@ -598,7 +607,7 @@ function TasksSection({
   return (
     <div className="stack">
       <button className="btn secondary" onClick={() => setShowForm(!showForm)}>
-        {showForm ? "Cancel" : "+ Add task"}
+        {showForm ? "Отмена" : "+ Добавить задачу"}
       </button>
       {showForm && (
         <form className="row form-wrap stack" onSubmit={handleCreate}>
@@ -606,25 +615,25 @@ function TasksSection({
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Task title"
+            placeholder="Название задачи"
             required
           />
           <label className="field">
-            Assignee
+            Исполнитель
             <select value={assigneeId} onChange={(e) => setAssigneeId(e.target.value)}>
-              <option value="">— Unassigned</option>
+              <option value="">— Не назначен</option>
               {members.map((m) => (
                 <option key={m.user_id} value={m.user_id}>{m.email}</option>
               ))}
             </select>
           </label>
           <button className="btn" type="submit" disabled={saving}>
-            Save
+            Сохранить
           </button>
         </form>
       )}
       {tasks.length === 0 ? (
-        <p className="empty-state">No tasks yet.</p>
+        <p className="empty-state">Пока нет задач.</p>
       ) : (
         <div className="list">
           {tasks.map((t) => (
@@ -633,7 +642,7 @@ function TasksSection({
                 <strong>{t.title}</strong>
                 <div className="row" style={{ gap: "0.5rem", flexWrap: "wrap" }}>
                   <label className="field" style={{ margin: 0, minWidth: "120px" }}>
-                    Assignee
+                    Исполнитель
                     <select
                       value={t.assignee_id ?? ""}
                       onChange={(e) => onAssigneeChange(t.id, e.target.value || null)}
@@ -650,10 +659,10 @@ function TasksSection({
                     className="field"
                     style={{ width: "auto" }}
                   >
-                    <option value="pending">Pending</option>
-                    <option value="in_progress">In progress</option>
-                    <option value="done">Done</option>
-                    <option value="cancelled">Cancelled</option>
+                    <option value="pending">Ожидает</option>
+                    <option value="in_progress">В работе</option>
+                    <option value="done">Готово</option>
+                    <option value="cancelled">Отменено</option>
                   </select>
                 </div>
               </div>
@@ -664,7 +673,7 @@ function TasksSection({
                       <input type="checkbox" checked={!!item.done} onChange={() => toggleCheck(t, i)} />
                       <span style={{ textDecoration: item.done ? "line-through" : "none" }}>{item.label}</span>
                     </label>
-                    <button type="button" className="btn secondary" style={{ padding: "0.2rem 0.4rem", fontSize: "0.8rem" }} onClick={() => removeChecklistItem(t.id, i)}>Remove</button>
+                    <button type="button" className="btn secondary" style={{ padding: "0.2rem 0.4rem", fontSize: "0.8rem" }} onClick={() => removeChecklistItem(t.id, i)}>Удалить</button>
                   </div>
                 ))}
                 <div className="row" style={{ gap: "0.5rem" }}>
@@ -672,10 +681,10 @@ function TasksSection({
                     type="text"
                     value={newChecklistLabel[t.id] ?? ""}
                     onChange={(e) => setNewChecklistLabel((p) => ({ ...p, [t.id]: e.target.value }))}
-                    placeholder="+ Add checklist item"
+                    placeholder="+ Пункт чек-листа"
                     onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addChecklistItem(t.id))}
                   />
-                  <button type="button" className="btn secondary" onClick={() => addChecklistItem(t.id)}>Add</button>
+                  <button type="button" className="btn secondary" onClick={() => addChecklistItem(t.id)}>Добавить</button>
                 </div>
               </div>
             </div>
@@ -724,19 +733,19 @@ function OrderReserveSection({ orderId, orgId, onDone }: { orderId: string; orgI
     }
   };
 
-  if (items.length === 0) return <p className="app-subtitle">No inventory items. Add some in Admin → Inventory.</p>;
+  if (items.length === 0) return <p className="app-subtitle">Нет товаров на складе. Добавьте в Админ → Склад.</p>;
 
   return (
     <div className="row form-wrap">
       <select value={itemId} onChange={(e) => setItemId(e.target.value)}>
-        <option value="">Select item</option>
+        <option value="">Выберите товар</option>
         {items.map((i) => (
           <option key={i.id} value={i.id}>{i.name} ({i.quantity} {i.unit})</option>
         ))}
       </select>
-      <input type="number" min="0.01" step="0.01" value={qty} onChange={(e) => setQty(e.target.value)} placeholder="Qty" style={{ width: "80px" }} />
+      <input type="number" min="0.01" step="0.01" value={qty} onChange={(e) => setQty(e.target.value)} placeholder="Кол-во" style={{ width: "80px" }} />
       <button className="btn" onClick={handleReserve} disabled={loading || !itemId}>
-        {loading ? "…" : "Reserve for order"}
+        {loading ? "…" : "Зарезервировать"}
       </button>
     </div>
   );
