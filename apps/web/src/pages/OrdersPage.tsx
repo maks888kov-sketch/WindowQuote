@@ -25,6 +25,15 @@ type SiteOption = {
   name: string;
 };
 
+const statusLabels: Record<string, string> = {
+  draft: "Черновик",
+  quoted: "Смета",
+  approved: "Утверждён",
+  scheduled: "В работе",
+  completed: "Готов",
+  canceled: "Отменён",
+};
+
 const statusOptions = ["draft", "quoted", "approved", "scheduled", "completed", "canceled"];
 
 const OrdersPage = () => {
@@ -37,6 +46,7 @@ const OrdersPage = () => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
   const [title, setTitle] = useState("");
   const [customerId, setCustomerId] = useState("");
   const [siteId, setSiteId] = useState("");
@@ -87,50 +97,27 @@ const OrdersPage = () => {
   };
 
   const loadCustomers = async () => {
-    if (!activeOrgId) {
-      setCustomers([]);
-      return;
-    }
-
-    const { data, error: fetchError } = await supabase
+    if (!activeOrgId) return;
+    const { data } = await supabase
       .from("customers")
       .select("id, name")
       .eq("org_id", activeOrgId)
       .order("name");
-
-    if (fetchError) {
-      setError(fetchError.message);
-      setCustomers([]);
-      return;
-    }
-
     setCustomers(data ?? []);
   };
 
   const loadSites = async () => {
-    if (!activeOrgId) {
-      setSites([]);
-      return;
-    }
-
-    const { data, error: fetchError } = await supabase
+    if (!activeOrgId) return;
+    const { data } = await supabase
       .from("sites")
       .select("id, name")
       .eq("org_id", activeOrgId)
       .order("name");
-
-    if (fetchError) {
-      setError(fetchError.message);
-      setSites([]);
-      return;
-    }
-
     setSites(data ?? []);
   };
 
   const handleCreateOrder = async () => {
     if (!activeOrgId || !canCreate) return;
-
     setSaving(true);
     const { error: insertError } = await supabase.from("orders").insert({
       org_id: activeOrgId,
@@ -139,7 +126,6 @@ const OrdersPage = () => {
       title,
       status,
     });
-
     if (insertError) {
       setError(insertError.message);
     } else {
@@ -148,27 +134,16 @@ const OrdersPage = () => {
       setSiteId("");
       setStatus("draft");
       setError(null);
+      setShowCreate(false);
       await loadOrders();
     }
-
     setSaving(false);
   };
 
+  useEffect(() => { void loadOrders(); }, [activeOrgId, statusFilter]);
+  useEffect(() => { void loadCustomers(); void loadSites(); }, [activeOrgId]);
   useEffect(() => {
-    void loadOrders();
-  }, [activeOrgId, statusFilter]);
-
-  useEffect(() => {
-    void loadCustomers();
-    void loadSites();
-  }, [activeOrgId]);
-
-  useEffect(() => {
-    const unregister = registerRetry(() => {
-      void loadOrders();
-      void loadCustomers();
-      void loadSites();
-    });
+    const unregister = registerRetry(() => { void loadOrders(); void loadCustomers(); void loadSites(); });
     return unregister;
   }, [registerRetry, activeOrgId, statusFilter]);
 
@@ -176,102 +151,108 @@ const OrdersPage = () => {
     <section className="stack">
       <div className="page-header">
         <div>
-          <h1>Orders</h1>
-          <p>Track orders, statuses, and measurements.</p>
+          <h1>Мои заказы</h1>
+          <p className="app-subtitle">Замеры и сметы окон и дверей</p>
         </div>
       </div>
 
-      <div className="card stack">
-        <div className="row">
-          <h2>Create order</h2>
-          <span className="pill">{activeOrgId ? "Active org" : "No org selected"}</span>
-        </div>
-        <div className="grid">
-          <label className="field">
-            Title
-            <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Kitchen remodel" />
-          </label>
-          <label className="field">
-            Customer
-            <select value={customerId} onChange={(event) => setCustomerId(event.target.value)}>
-              <option value="">Select customer</option>
-              {customers.map((customer) => (
-                <option key={customer.id} value={customer.id}>
-                  {customer.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            Site
-            <select value={siteId} onChange={(event) => setSiteId(event.target.value)}>
-              <option value="">Optional site</option>
-              {sites.map((site) => (
-                <option key={site.id} value={site.id}>
-                  {site.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            Status
-            <select value={status} onChange={(event) => setStatus(event.target.value)}>
-              {statusOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-        <button className="btn" onClick={handleCreateOrder} disabled={!canCreate || saving}>
-          {saving ? "Saving..." : "New order"}
+      <div className="row" style={{ gap: "0.75rem", flexWrap: "wrap" }}>
+        <Link className="btn btn-cta" to="/orders/new-order">
+          ➕ Добавить замер
+        </Link>
+        <button
+          className="btn secondary"
+          type="button"
+          onClick={() => setShowCreate(!showCreate)}
+        >
+          {showCreate ? "Скрыть" : "Новый заказ"}
         </button>
-        {error && <p className="error">{error}</p>}
       </div>
 
-      <div className="card">
-        <div className="row">
-          <h2>Orders</h2>
-          <label className="field">
-            Status filter
-            <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
-              <option value="all">All statuses</option>
-              {statusOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </label>
+      {showCreate && (
+        <div className="card stack">
+          <h2>Создать заказ</h2>
+          <div className="grid">
+            <label className="field">
+              Название
+              <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Кухня, окна ПВХ" />
+            </label>
+            <label className="field">
+              Клиент
+              <select value={customerId} onChange={(e) => setCustomerId(e.target.value)}>
+                <option value="">Выберите клиента</option>
+                {customers.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </label>
+            <label className="field">
+              Объект
+              <select value={siteId} onChange={(e) => setSiteId(e.target.value)}>
+                <option value="">Опционально</option>
+                {sites.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <button className="btn" onClick={handleCreateOrder} disabled={!canCreate || saving}>
+            {saving ? "Сохранение…" : "Создать"}
+          </button>
+          {error && <p className="notice" style={{ background: "#fee2e2", color: "#991b1b" }}>{error}</p>}
         </div>
-        {loading ? (
-          <div className="empty-state">
-            <p>Loading orders...</p>
-          </div>
-        ) : orders.length === 0 ? (
-          <div className="empty-state">
-            <p>No orders yet. Create your first order from a customer site.</p>
-          </div>
-        ) : (
-          <div className="list">
-            {orders.map((order) => (
-              <div className="list-row" key={order.id}>
-                <div>
-                  <strong>{order.order_number ? `${order.order_number} · ` : ""}{order.title}</strong>
-                  <p>
-                    {order.status} · {order.sites?.[0]?.name ?? "No site"}
-                  </p>
-                  <small>{new Date(order.created_at).toLocaleString()}</small>
-                </div>
-                <Link className="btn secondary" to={`/orders/${order.id}`}>
-                  View
-                </Link>
-              </div>
+      )}
+
+      <div className="row" style={{ justifyContent: "space-between", alignItems: "center", flexWrap: "wrap" }}>
+        <h2 style={{ margin: 0 }}>Заказы</h2>
+        <label className="field" style={{ flexDirection: "row", alignItems: "center", gap: "0.5rem" }}>
+          <span>Статус:</span>
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+            <option value="all">Все</option>
+            {statusOptions.map((opt) => (
+              <option key={opt} value={opt}>{statusLabels[opt] ?? opt}</option>
             ))}
-          </div>
-        )}
+          </select>
+        </label>
       </div>
+
+      {loading ? (
+        <div className="empty-state"><p>Загрузка…</p></div>
+      ) : orders.length === 0 ? (
+        <div className="card empty-state">
+          <p>Пока нет заказов.</p>
+          <p>Создайте первый заказ или перейдите к замеру.</p>
+          <Link className="btn btn-cta" to="/customers" style={{ marginTop: "1rem" }}>
+            Добавить клиента
+          </Link>
+        </div>
+      ) : (
+        <div className="orders-grid">
+          {orders.map((order) => (
+            <Link to={`/orders/${order.id}`} key={order.id} className="order-card">
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.5rem" }}>
+                <strong style={{ fontSize: "1rem" }}>
+                  {order.order_number ? `${order.order_number} · ` : ""}{order.title}
+                </strong>
+                <span className={`status-pill ${order.status}`}>
+                  {statusLabels[order.status] ?? order.status}
+                </span>
+              </div>
+              <p style={{ margin: 0, fontSize: "0.9rem", color: "#64748b" }}>
+                {order.customers?.[0]?.name ?? "—"} · {order.sites?.[0]?.name ?? "—"}
+              </p>
+              <small style={{ color: "#94a3b8" }}>
+                {new Date(order.created_at).toLocaleDateString("ru-RU")}
+              </small>
+              <div style={{ marginTop: "0.75rem" }}>
+                <span className="btn secondary" style={{ padding: "0.4rem 0.8rem", fontSize: "0.85rem" }}>
+                  Замер →
+                </span>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
     </section>
   );
 };

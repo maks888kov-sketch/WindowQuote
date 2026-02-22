@@ -114,7 +114,11 @@ export default async function handler(req, res) {
     return jsonResponse(res, 405, { ok: false, error: "METHOD_NOT_ALLOWED" });
   }
 
-  const userId = normalizeUserId(req.query?.userId);
+  let userId = normalizeUserId(req.query?.userId);
+  if (!userId && typeof req.url === "string") {
+    const match = req.url.match(/\/api\/admin\/users\/([^/?]+)/);
+    if (match) userId = match[1].trim();
+  }
   if (!userId) {
     return jsonResponse(res, 400, {
       ok: false,
@@ -152,6 +156,11 @@ export default async function handler(req, res) {
       });
     }
 
+    // Remove org memberships first to avoid FK constraints
+    await supabaseAdmin.from("org_members").delete().eq("user_id", userId);
+    await supabaseAdmin.from("push_subscriptions").delete().eq("user_id", userId);
+    await supabaseAdmin.from("profiles").delete().eq("user_id", userId);
+
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
     if (deleteError) {
       return jsonResponse(res, 500, {
@@ -159,6 +168,7 @@ export default async function handler(req, res) {
         error: "DELETE_USER_FAILED",
         details: deleteError.message,
         code: deleteError.code ?? null,
+        hint: deleteError.message?.includes("foreign key") ? "User may be referenced elsewhere. Try removing from all orgs first." : undefined,
       });
     }
 

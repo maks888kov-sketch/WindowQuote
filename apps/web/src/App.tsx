@@ -18,6 +18,7 @@ import AdminPriceBooksPage from "./pages/AdminPriceBooksPage";
 import AdminPriceBookDetailPage from "./pages/AdminPriceBookDetailPage";
 import AdminInventoryPage from "./pages/AdminInventoryPage";
 import TasksPage from "./pages/TasksPage";
+import MeasureSelectOrderPage from "./pages/MeasureSelectOrderPage";
 
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 
@@ -25,7 +26,7 @@ const App = () => {
   return (
     <Routes>
       <Route element={<Layout />}>
-        <Route index element={<Navigate to="/dashboard" replace />} />
+        <Route index element={<Navigate to="/orders" replace />} />
         <Route path="/dashboard" element={<Suspense fallback={<p>Loading…</p>}><DashboardPage /></Suspense>} />
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/onboarding" element={<OnboardingPage />} />
@@ -34,6 +35,7 @@ const App = () => {
         <Route path="/customers" element={<CustomersPage />} />
         <Route path="/sites" element={<SitesPage />} />
         <Route path="/orders" element={<OrdersPage />} />
+        <Route path="/orders/new-order" element={<MeasureSelectOrderPage />} />
         <Route path="/orders/:id" element={<OrderDetailPage />} />
         <Route path="/orders/:id/measurements/new" element={<NewMeasurementPage />} />
         <Route path="/orders/:id/measurements" element={<MeasurementHistoryPage />} />

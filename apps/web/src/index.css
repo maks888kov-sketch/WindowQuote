@@ -4,7 +4,16 @@
   line-height: 1.5;
   font-weight: 400;
   color: #0f172a;
-  background-color: #f8fafc;
+  background-color: #f1f5f9;
+  --brand-primary: #0369a1;
+  --brand-primary-dark: #02567a;
+  --brand-accent: #0ea5e9;
+  --status-draft: #94a3b8;
+  --status-quoted: #3b82f6;
+  --status-approved: #8b5cf6;
+  --status-scheduled: #f59e0b;
+  --status-completed: #10b981;
+  --status-canceled: #ef4444;
 }
 
 * {
@@ -118,7 +127,40 @@ a {
   border: 1px solid #e2e8f0;
   border-radius: 1rem;
   padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
 }
+
+.order-card {
+  display: block;
+  padding: 1rem 1.25rem;
+  border-radius: 0.875rem;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  text-align: left;
+  min-height: 88px;
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+
+.order-card:hover, .order-card:focus {
+  border-color: var(--brand-primary);
+  box-shadow: 0 4px 12px rgba(3,105,161,0.15);
+}
+
+.status-pill {
+  display: inline-block;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-pill.draft { background: #e2e8f0; color: #475569; }
+.status-pill.quoted { background: #dbeafe; color: #1d4ed8; }
+.status-pill.approved { background: #ede9fe; color: #6d28d9; }
+.status-pill.scheduled { background: #fef3c7; color: #b45309; }
+.status-pill.completed { background: #d1fae5; color: #047857; }
+.status-pill.canceled { background: #fee2e2; color: #b91c1c; }
 
 .stack {
   display: grid;
@@ -153,12 +195,29 @@ a {
 
 .btn {
   border: none;
-  background: #0f172a;
+  background: var(--brand-primary);
   color: #ffffff;
-  padding: 0.6rem 1rem;
+  padding: 0.7rem 1.25rem;
+  min-height: 44px;
   border-radius: 0.75rem;
   font-weight: 600;
   cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn:hover {
+  background: var(--brand-primary-dark);
+}
+
+.btn-cta {
+  background: var(--brand-primary);
+  font-size: 1rem;
+  padding: 1rem 1.5rem;
+  min-height: 52px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
 .btn.secondary {
@@ -281,6 +340,23 @@ a {
   background: #1d4ed8;
 }
 
+.orders-grid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .orders-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .orders-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
 @media (max-width: 720px) {
   .page-header {
     flex-direction: column;
@@ -317,6 +393,15 @@ a {
 
   .app-main {
     padding-bottom: 6rem;
+  }
+
+  .orders-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .btn, .btn-cta {
+    width: 100%;
+    justify-content: center;
   }
 }
 

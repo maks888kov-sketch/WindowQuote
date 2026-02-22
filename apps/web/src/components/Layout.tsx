@@ -9,12 +9,11 @@ import AuthPage from "../pages/AuthPage";
 import OrgSelectPage from "../pages/OrgSelectPage";
 
 const baseNavItems = [
-  { label: "Dashboard", to: "/dashboard" },
-  { label: "Orders", to: "/orders" },
-  { label: "Tasks", to: "/tasks" },
-  { label: "Customers", to: "/customers" },
-  { label: "Sites", to: "/sites" },
-  { label: "Auth", to: "/auth" },
+  { label: "Заказы", to: "/orders", icon: "📋" },
+  { label: "Задачи", to: "/tasks", icon: "✓" },
+  { label: "Dashboard", to: "/dashboard", icon: "📊" },
+  { label: "Клиенты", to: "/customers", icon: "👤" },
+  { label: "Объекты", to: "/sites", icon: "📍" },
 ];
 
 const Layout = () => {
@@ -33,7 +32,7 @@ const Layout = () => {
   const [navOpen, setNavOpen] = useState(false);
   const navItems = useMemo(() => {
     if (activeMembership?.role === "admin") {
-      return [...baseNavItems, { label: "Admin", to: "/admin" }];
+      return [...baseNavItems, { label: "Админ", to: "/admin", icon: "⚙" }];
     }
     return baseNavItems;
   }, [activeMembership?.role]);
@@ -63,7 +62,7 @@ const Layout = () => {
   const renderHeaderInfo = () => (
     <div>
       <p className="app-title">WindowQuote</p>
-      <p className="app-subtitle">Measurement & Order Console</p>
+      <p className="app-subtitle">Замеры и сметы окон и дверей</p>
       <p className="app-subtitle">Вы вошли как: {currentUserEmail}</p>
       {orgs.length > 1 ? (
         <label className="field">
@@ -172,11 +171,11 @@ const Layout = () => {
               Enable notifications
             </button>
           )}
-          <NavLink className="btn" to="/onboarding">
-            Create Org
+          <NavLink className="btn secondary" to="/onboarding">
+            Создать организацию
           </NavLink>
           <button className="btn secondary" type="button" onClick={() => void handleSignOut()}>
-            Sign out
+            Выход
           </button>
         </div>
       </header>
@@ -204,10 +203,11 @@ const Layout = () => {
             {navItems.map((item) => (
               <NavLink
                 key={item.to}
-                className="nav-link"
+                className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
                 to={item.to}
                 onClick={() => setNavOpen(false)}
               >
+                {item.icon && <span aria-hidden>{item.icon} </span>}
                 {item.label}
               </NavLink>
             ))}
