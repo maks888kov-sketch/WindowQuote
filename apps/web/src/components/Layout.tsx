@@ -129,7 +129,7 @@ const Layout = () => {
     );
   }
 
-  if (orgs.length === 0) {
+  if (orgs.length === 0 && location.pathname !== "/onboarding") {
     return (
       <div className="app-shell">
         <header className="app-header">
@@ -140,6 +140,22 @@ const Layout = () => {
         </header>
         <main className="app-main">
           <OrgSelectPage />
+        </main>
+      </div>
+    );
+  }
+
+  if (orgs.length === 0 && location.pathname === "/onboarding") {
+    return (
+      <div className="app-shell">
+        <header className="app-header">
+          {renderHeaderInfo()}
+          <button className="btn secondary" type="button" onClick={() => void handleSignOut()}>
+            Выход
+          </button>
+        </header>
+        <main className="app-main">
+          <Outlet />
         </main>
       </div>
     );
